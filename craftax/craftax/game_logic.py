@@ -828,7 +828,7 @@ def add_new_growing_plant(state, position, is_placing_sapling, static_params):
         state.growing_plants_mask,
     )
 
-    return new_growing_plants_positions, new_growing_plants_age, new_growing_plants_mask
+    return new_growing_plants_positions, new_growing_plants_age, new_growing_plants_mask, is_adding_plant
 
 
 def place_block(state, action, static_params):
@@ -1014,6 +1014,14 @@ def place_block(state, action, static_params):
         new_item_map[placing_block_position[0], placing_block_position[1]]
         == ItemType.NONE.value,
     )
+    (
+        new_growing_plants_positions,
+        new_growing_plants_age,
+        new_growing_plants_mask,
+        is_placing_sapling,
+    ) = add_new_growing_plant(
+        state, placing_block_position, is_placing_sapling, static_params
+    )
     placed_sapling_block = jax.lax.select(
         is_placing_sapling,
         BlockType.PLANT.value,
@@ -1029,13 +1037,6 @@ def place_block(state, action, static_params):
         jnp.logical_or(
             new_achievements[Achievement.PLACE_PLANT.value], is_placing_sapling
         )
-    )
-    (
-        new_growing_plants_positions,
-        new_growing_plants_age,
-        new_growing_plants_mask,
-    ) = add_new_growing_plant(
-        state, placing_block_position, is_placing_sapling, static_params
     )
 
     # Do?
