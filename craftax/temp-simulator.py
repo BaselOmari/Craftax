@@ -1,3 +1,4 @@
+# %%
 import jax
 import jax.numpy as jnp
 import pygame
@@ -90,7 +91,7 @@ class CraftaxRenderer:
         # Clear
         self.screen_surface.fill((0, 0, 0))
 
-        pixels = self._render(env_state, BLOCK_PIXEL_SIZE_HUMAN, env.static_env_params)[0]
+        pixels = self._render(env_state, BLOCK_PIXEL_SIZE_HUMAN, env.static_env_params, env.player_specific_textures)[0]
         pixels = jnp.repeat(pixels, repeats=self.pixel_render_size, axis=0)
         pixels = jnp.repeat(pixels, repeats=self.pixel_render_size, axis=1)
 
@@ -114,14 +115,22 @@ class CraftaxRenderer:
                     else:
                         return Action.NOOP.value
 
+# %%
 rng = jax.random.PRNGKey(0)
 env = CraftaxEnv(CraftaxEnv.default_static_params())
 renderer = CraftaxRenderer(env, env.default_params)
 
 jitted_reset = env.reset
 jitted_step = jax.jit(craftax_step, static_argnames=("static_params", ))
-obs, state = jitted_reset(rng, env.default_params)
+obs, state = jitted_reset(rng+2, env.default_params)
+state = state.replace(
+    inventory=state.inventory.replace(
+        pickaxe=jnp.array([1,1,1,1])
+    )
+)
 
+
+# %%
 print("Ready to play!")
 while True:
     if renderer.is_quit_requested():
@@ -139,3 +148,108 @@ while True:
     )
     renderer.render(state)
     renderer.update()
+
+
+# %%
+def temp(state, block_pixel_size, static_params, player_specific_textures, do_night_noise=True):
+    textures = TEXTURES[block_pixel_size]
+    obs_dim_array = jnp.array([OBS_DIM[0], OBS_DIM[1]], dtype=jnp.int32)
+
+    # RENDER MAP
+    # Get view of map
+    map = state.map[state.player_level]
+    padded_grid = jnp.pad(
+        map,
+        (MAX_OBS_DIM + 2, MAX_OBS_DIM + 2),
+        constant_values=BlockType.OUT_OF_BOUNDS.value,
+    )
+
+    tl_corner = state.player_position - obs_dim_array // 2 + MAX_OBS_DIM + 2
+
+    map_view = jax.vmap(jax.lax.dynamic_slice, in_axes=(None, 0, None))(
+        padded_grid, tl_corner, OBS_DIM
+    )
+
+    # Boss
+    boss_block = jax.lax.select(
+        is_boss_vulnerable(state),
+        BlockType.NECROMANCER_VULNERABLE.value,
+        BlockType.NECROMANCER.value,
+    )
+
+    map_view_boss = map_view == BlockType.NECROMANCER.value
+    map_view = map_view_boss * boss_block + (1 - map_view_boss) * map_view
+
+    # Render map tiles
+    map_pixels_indexes = jnp.repeat(
+        jnp.repeat(map_view, repeats=block_pixel_size, axis=1),
+        repeats=block_pixel_size,
+        axis=2,
+    )
+    map_pixels_indexes = jnp.expand_dims(map_pixels_indexes, axis=-1)
+    map_pixels_indexes = jnp.repeat(map_pixels_indexes, repeats=3, axis=-1)
+
+    map_pixels = jnp.zeros_like(map_pixels_indexes, dtype=jnp.float32)
+
+    def _add_block_type_to_pixels(pixels, block_index):
+        return (
+            pixels
+            + textures["full_map_block_textures"][block_index]
+            * (map_pixels_indexes == block_index),
+            None,
+        )
+
+    map_pixels, _ = jax.lax.scan(
+        _add_block_type_to_pixels, map_pixels, jnp.arange(len(BlockType))
+    )
+
+    # Render Colored Chests
+    def _add_player_chests(chest_map_view, player_index):
+        """Adds players chest position to other players"""
+        local_position = (
+            state.chest_positions[state.player_level, player_index]
+            - state.player_position[:, None]
+            + jnp.ones((2,), dtype=jnp.int32) * (obs_dim_array // 2)
+        )
+        def _single_batch_index(data_slice, row_idx, col_idx):
+            return data_slice.at[row_idx, col_idx].set(player_index)
+        chest_map_view = jax.vmap(_single_batch_index, in_axes=(0,0,0))(
+            chest_map_view, local_position[..., 0], local_position[..., 1]
+        )
+        return chest_map_view, None
+
+    chest_map_view = jnp.full_like(map_view, fill_value=-1)
+    chest_map_view, _ = jax.lax.scan(
+        _add_player_chests,
+        chest_map_view,
+        jnp.arange(static_params.player_count),
+    )
+    chest_map_pixels_indexes = jnp.repeat(
+        jnp.repeat(chest_map_view, repeats=block_pixel_size, axis=1),
+        repeats=block_pixel_size,
+        axis=2,
+    )
+    chest_map_pixels_indexes = jnp.expand_dims(chest_map_pixels_indexes, axis=-1)
+    chest_map_pixels_indexes = jnp.repeat(chest_map_pixels_indexes, repeats=3, axis=-1)
+
+    def _add_player_chest_to_pixels(pixels, player_index):
+        return (
+            pixels
+            + (player_specific_textures.chest_textures[player_index] - pixels)
+            * (chest_map_pixels_indexes == player_index)
+            * (map_pixels_indexes == BlockType.CHEST.value),
+            None,
+        )
+
+    map_pixels, _ = jax.lax.scan(
+        _add_player_chest_to_pixels, map_pixels, jnp.arange(static_params.player_count)
+    )
+
+    # Items
+    padded_item_map = jnp.pad(
+        state.item_map[state.player_level],
+        (MAX_OBS_DIM + 2, MAX_OBS_DIM + 2),
+        constant_values=ItemType.NONE.value,
+    )
+
+temp(state, 64, env.default_static_params(), env.player_specific_textures)
