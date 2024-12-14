@@ -1,3 +1,4 @@
+# %%
 import jax
 import jax.numpy as jnp
 import pygame
@@ -90,7 +91,7 @@ class CraftaxRenderer:
         # Clear
         self.screen_surface.fill((0, 0, 0))
 
-        pixels = self._render(env_state, BLOCK_PIXEL_SIZE_HUMAN, env.static_env_params)[0]
+        pixels = self._render(env_state, BLOCK_PIXEL_SIZE_HUMAN, env.static_env_params, env.player_specific_textures)[0]
         pixels = jnp.repeat(pixels, repeats=self.pixel_render_size, axis=0)
         pixels = jnp.repeat(pixels, repeats=self.pixel_render_size, axis=1)
 
@@ -114,14 +115,22 @@ class CraftaxRenderer:
                     else:
                         return Action.NOOP.value
 
+# %%
 rng = jax.random.PRNGKey(0)
 env = CraftaxEnv(CraftaxEnv.default_static_params())
 renderer = CraftaxRenderer(env, env.default_params)
 
 jitted_reset = env.reset
 jitted_step = jax.jit(craftax_step, static_argnames=("static_params", ))
-obs, state = jitted_reset(rng, env.default_params)
+obs, state = jitted_reset(rng+2, env.default_params)
+state = state.replace(
+    inventory=state.inventory.replace(
+        pickaxe=jnp.array([1,1,1,1])
+    )
+)
 
+
+# %%
 print("Ready to play!")
 while True:
     if renderer.is_quit_requested():
