@@ -124,15 +124,15 @@ renderer = CraftaxRenderer(env, env.default_params)
 
 jitted_reset = env.reset
 jitted_step = jax.jit(craftax_step, static_argnames=("static_params", ))
-obs, state = jitted_reset(rng+2, env.default_params)
-state = state.replace(
-    inventory=state.inventory.replace(
-        bow=jnp.array([1,1,1]),
-        arrows=jnp.array([9,9,9]),
-        pickaxe=jnp.array([1,1,1]),
-        books=jnp.array([1,1,1]),
-    ),
-)
+obs, state = jitted_reset(rng+2)
+# state = state.replace(
+#     inventory=state.inventory.replace(
+#         bow=jnp.array([1,1,1]),
+#         arrows=jnp.array([9,9,9]),
+#         pickaxe=jnp.array([1,1,1]),
+#         books=jnp.array([1,1,1]),
+#     ),
+# )
 
 
 # %%
@@ -146,14 +146,15 @@ while True:
     actions.extend([
         randint(1,4) for _ in range(env.static_env_params.player_count-players_controlled)
     ])
-    actions = jnp.array(actions)
+    actions = {name: action for name, action in zip(env.agents, actions)}
 
     rng, _rng = jax.random.split(rng)
-    state, _ = jitted_step(
-        _rng, state, actions, env.default_params, CraftaxEnv.default_static_params()
-    )
+    _, state, rewards, dones, infos = env.step(_rng, state, actions)
     renderer.render(state)
     renderer.update()
+
+    print("Rewards:", rewards)
+    print("Dones:", dones)
 
 
 # %%
