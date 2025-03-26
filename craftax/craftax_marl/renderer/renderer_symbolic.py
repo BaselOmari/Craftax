@@ -258,7 +258,7 @@ def render_craftax_symbolic(state: EnvState, static_params: StaticEnvParams):
         (players_health[:, None], players_alive[:, None], players_specialization, requested_material),
         axis=-1
     ).flatten()
-    teammate_dashboard = jnp.repeat(teammate_dashboard[None, ...], 3, axis=0)
+    teammate_dashboard = jnp.repeat(teammate_dashboard[None, ...], static_params.player_count, axis=0)
 
     all_flattened = jnp.concatenate(
         [
