@@ -2,7 +2,7 @@
 import os
 import sys
 sys.path.append('/app/Craftax/craftax')
-os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1,"
 
 import copy
 import jax
@@ -187,11 +187,12 @@ def make_train(config, env):
 
         # INIT ENV
         rng, _rng = jax.random.split(rng)
+        log_env = LogWrapper(env)
         wrapped_env = CTRolloutManager(
-            env, batch_size=config["NUM_ENVS"], preprocess_obs=True
+            log_env, batch_size=config["NUM_ENVS"], preprocess_obs=True
         )
         test_env = CTRolloutManager(
-            env,
+            log_env,
             batch_size=config["TEST_NUM_ENVS"],
             preprocess_obs=True,
         )  # batched env for testing (has different batch size)
@@ -502,6 +503,7 @@ def make_train(config, env):
                                 for k, v in metrics.items()
                             }
                         )
+                    print(metrics)
                     wandb.log(metrics, step=metrics["update_steps"])
 
                 jax.debug.callback(callback, metrics, original_seed)
@@ -656,12 +658,9 @@ def make_train(config, env):
 
 def single_run(config):
 
-    config = {**config, **config["alg"]}  # merge the alg config with the main config
-    print("Config:\n", OmegaConf.to_yaml(config))
-
-    alg_name = config.get("ALG_NAME", "pqn_vdn_rnn")
+    alg_name = config.get("ALG_NAME", "pqn-vdn-rnn")
     env = CraftaxEnv()
-    env_name = "craftax-ma-symbolic"
+    env_name = "craftax-ma-symbolic-single"
 
     wandb.init(
         entity=config["ENTITY"],
@@ -751,42 +750,88 @@ def tune(default_config):
     wandb.agent(sweep_id, wrapped_make_train, count=300)
 
 # %%
-config = {
-    # WANDB
-    "WANDB_MODE": "online",
-    "PROJECT": "craftax-ma",
-    "ENTITY": "b2alomar-university-of-waterloo",
+# config = {
+#     # WANDB
+#     "WANDB_MODE": "online",
+#     "PROJECT": "craftax-ma",
+#     "ENTITY": "b2alomar-university-of-waterloo",
     
-    "SEED": 0,
-    "NUM_SEEDS": 1,
+#     "SEED": 0,
+#     "NUM_SEEDS": 1,
 
+#     "TOTAL_TIMESTEPS": 1e9,
+#     "NUM_ENVS": 128,
+#     "MEMORY_WINDOW": 4,
+#     "NUM_STEPS": 128,
+#     "HIDDEN_SIZE": 512,
+#     "NUM_LAYERS": 4,
+#     "NORM_INPUT": True,
+#     "NORM_TYPE": "batch_norm",
+#     "EPS_START": 1.0,
+#     "EPS_FINISH": 0.01,
+#     "EPS_DECAY": 0.1,
+#     "MAX_GRAD_NORM": 1,
+#     "NUM_MINIBATCHES": 16,
+#     "NUM_EPOCHS": 4,
+#     "LR": 0.00025,
+#     "LR_LINEAR_DECAY": True,
+#     "GAMMA": 0.99,
+#     "LAMBDA": 0.85,
+#     "REW_SCALE": 10.,
+
+#     # evaluate
+#     "TEST_DURING_TRAINING": False,
+#     "TEST_INTERVAL": 0.0, # as a fraction of updates, i.e. log every 5% of training process
+#     "TEST_NUM_STEPS": 30,
+#     "TEST_NUM_ENVS": 512 # number of episodes to average over, can affect performance
+# }
+
+# tune(config)
+
+# %%
+config = {
+    "WANDB_MODE": "online",
+    "PROJECT": "pqn-vdn-rnn_craftax-ma-single",
+    "ENTITY": "b2alomar-university-of-waterloo",
+
+    "ALG_NAME": "pqn-vdn-rnn",
     "TOTAL_TIMESTEPS": 1e9,
-    "NUM_ENVS": 128,
-    "MEMORY_WINDOW": 4,
-    "NUM_STEPS": 128,
-    "HIDDEN_SIZE": 512,
-    "NUM_LAYERS": 4,
-    "NORM_INPUT": True,
-    "NORM_TYPE": "batch_norm",
+    "TOTAL_TIMESTEPS_DECAY": 1e9,  # will be used for decay functions, in case you want to test for less timesteps and keep decays same
+    "NUM_ENVS": 1024,  # parallel environments
+    "MEMORY_WINDOW": 0,  # steps of previous episode added in the rnn training horizon
+    "NUM_STEPS": 128,  # steps per environment in each update
     "EPS_START": 1.0,
-    "EPS_FINISH": 0.01,
-    "EPS_DECAY": 0.1,
-    "MAX_GRAD_NORM": 1,
-    "NUM_MINIBATCHES": 16,
-    "NUM_EPOCHS": 4,
-    "LR": 0.00025,
+    "EPS_FINISH": 0.005,
+    "EPS_DECAY": 0.1,  # ratio of total updates
+    "NUM_MINIBATCHES": 4,  # minibatches per epoch
+    "NUM_EPOCHS": 4,  # minibatches per epoch
+    "NORM_INPUT": True,
+    "NORM_TYPE": "layer_norm",  # layer_norm or batch_norm
+    "HIDDEN_SIZE": 512,
+    "NUM_LAYERS": 1,
+    "NUM_RNN_LAYERS": 1,
+    "ADD_LAST_ACTION": True,  # adds last action to the input of the rnn
+    "LR": 0.0003,
+    "MAX_GRAD_NORM": 0.5,
     "LR_LINEAR_DECAY": True,
+    "REW_SCALE": 1.0,
     "GAMMA": 0.99,
-    "LAMBDA": 0.85,
-    "REW_SCALE": 10.,
-
-    # evaluate
+    "LAMBDA": 0.5,
+    # env specific
+    "ENV_NAME": "Craftax-Symbolic-v1",
+    "USE_OPTIMISTIC_RESETS": True,
+    "OPTIMISTIC_RESET_RATIO": 16,
+    "LOG_ACHIEVEMENTS": False,
+    # evaluation
     "TEST_DURING_TRAINING": False,
-    "TEST_INTERVAL": 0.0, # as a fraction of updates, i.e. log every 5% of training process
-    "TEST_NUM_STEPS": 30,
-    "TEST_NUM_ENVS": 512 # number of episodes to average over, can affect performance
+    "TEST_INTERVAL": 0.01,  # in terms of total updates
+    "TEST_NUM_ENVS": 512,
+    "TEST_NUM_STEPS": 10000,
+    "EPS_TEST": 0.0,  # 0 for greedy policy
+    
+    "NUM_SEEDS": 1,
+    "SEED": 0,
 }
-
-tune(config)
+single_run(config)
 
 # %%
