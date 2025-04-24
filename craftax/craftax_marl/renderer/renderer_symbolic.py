@@ -3,7 +3,7 @@ from functools import partial
 
 from craftax_marl.constants import *
 from craftax_marl.craftax_state import EnvState, StaticEnvParams
-from craftax_marl.util.game_logic_utils import is_boss_vulnerable, get_player_icon_positions
+from craftax_marl.util.game_logic_utils import is_boss_vulnerable
 
 
 def render_craftax_symbolic(state: EnvState, static_params: StaticEnvParams):
