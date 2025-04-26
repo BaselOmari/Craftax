@@ -2,7 +2,7 @@
 import os
 import sys
 sys.path.append('/app/Craftax/craftax')
-os.environ["CUDA_VISIBLE_DEVICES"] = "6,"
+os.environ["CUDA_VISIBLE_DEVICES"] = "4,"
 
 import copy
 import jax
@@ -22,7 +22,7 @@ from omegaconf import OmegaConf
 import wandb
 
 from craftax_marl.envs.craftax_symbolic_env import CraftaxMARLSymbolicEnv as CraftaxEnv
-
+from craftax_marl.constants import avail_actions_fn
 
 from jaxmarl import make
 from jaxmarl.environments.smax import map_name_to_scenario
@@ -32,6 +32,10 @@ from jaxmarl.wrappers.baselines import (
     LogWrapper,
     CTRolloutManager,
 )
+
+def _avail_actions(env):
+    avail_actions_const = avail_actions_fn(env.num_agents)
+    return {agent: jnp.tile(avail_actions_const, env.batch_size).reshape(env.batch_size, -1) for agent in env.agents}
 
 class ScannedRNN(nn.Module):
 
@@ -275,7 +279,7 @@ def make_train(config, env):
                 )  # (num_agents, num_envs, num_actions) remove the time dim
 
                 # explore
-                avail_actions = wrapped_env.get_valid_actions(env_state)
+                avail_actions = jax.vmap(wrapped_env.get_avail_actions)(env_state.env_state)
 
                 eps = eps_scheduler(train_state.n_updates)
                 _rngs = jax.random.split(rng_a, env.num_agents)
@@ -601,7 +605,7 @@ def make_train(config, env):
             rng, rng_a, rng_s = jax.random.split(rng, 3)
             _obs = batchify(last_obs)[:, np.newaxis]
             _dones = batchify(last_dones)[:, np.newaxis]
-            avail_actions = wrapped_env.get_valid_actions(env_state)
+            avail_actions = _avail_actions(wrapped_env)
             new_hs, q_vals = jax.vmap(network.apply, in_axes=(None, 0, 0, 0, None))(
                 {
                     "params": train_state.params,
@@ -790,7 +794,7 @@ def tune(default_config):
 config = {
     "WANDB_MODE": "online",
     "PROJECT": "pqn-vdn-rnn_craftax-ma-3-agents",
-    "RUN_NAME": "disable_spec-reduce_mobs-lr_5e5-2_agents-hs_1024",
+    "RUN_NAME": "3_agent-smart_reduce_actions_w_trade",
     "ENTITY": "b2alomar-university-of-waterloo",
 
     "ALG_NAME": "pqn-vdn-rnn",
@@ -806,11 +810,11 @@ config = {
     "NUM_EPOCHS": 4,  # minibatches per epoch
     "NORM_INPUT": True,
     "NORM_TYPE": "layer_norm",  # layer_norm or batch_norm
-    "HIDDEN_SIZE": 1024,
+    "HIDDEN_SIZE": 512,
     "NUM_LAYERS": 1,
     "NUM_RNN_LAYERS": 1,
     "ADD_LAST_ACTION": True,  # adds last action to the input of the rnn
-    "LR": 0.00005,
+    "LR": 0.0003,
     "MAX_GRAD_NORM": 0.5,
     "LR_LINEAR_DECAY": True,
     "REW_SCALE": 1.0,

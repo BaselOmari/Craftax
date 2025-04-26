@@ -8,8 +8,8 @@ from jaxmarl.environments.multi_agent_env import MultiAgentEnv
 
 from craftax_marl.constants import *
 from craftax_marl.craftax_state import EnvState, EnvParams, StaticEnvParams
-from craftax_marl.envs.common import compute_score
-from craftax_marl.game_logic import craftax_step
+from craftax_marl.envs.common import compute_score_mappo
+from craftax_marl.game_logic import craftax_step, smart_avail_actions
 from craftax_marl.renderer.renderer_symbolic import render_craftax_symbolic
 from craftax_marl.util.game_logic_utils import has_beaten_boss
 from craftax_marl.world_gen.world_gen import generate_world
@@ -41,9 +41,8 @@ class CraftaxMARLSymbolicEnv(MultiAgentEnv):
 
         obs = self.get_obs(state)
         done = self.is_terminal(state, self.default_params)
-        info = compute_score(state, done, self.agents, self.static_env_params)
-        info["discount"] = self.discount(state, self.default_params)
-
+        info = compute_score_mappo(state, done, self.agents, self.static_env_params)
+        # info["discount"] = self.discount(state, self.default_params)
         agent_rewards = {n: r for n,r in zip(self.agents, reward)}
 
         agent_done = {n: done for n in self.agents}
@@ -70,9 +69,10 @@ class CraftaxMARLSymbolicEnv(MultiAgentEnv):
 
     @partial(jax.jit, static_argnums=(0,))
     def get_avail_actions(self, state: EnvState) -> Dict[str, chex.Array]:
+        aa = smart_avail_actions(state, self.static_env_params, self.default_params)
         return {
-            agent: jnp.ones(self.action_shape().n)
-            for agent in self.agents
+            agent: aa[i]
+            for i, agent in enumerate(self.agents)
         }
 
     @property
