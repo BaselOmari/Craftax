@@ -821,6 +821,10 @@ def do_crafting(state, actions, static_params):
     can_craft_stone_sword = jnp.logical_and(
         new_inventory.stone >= 1, new_inventory.wood >= 1
     )
+    can_craft_stone_sword = jnp.logical_and(
+        can_craft_stone_sword, 
+        is_warrior
+    )
     is_crafting_stone_sword = jnp.logical_and(
         actions == Action.MAKE_STONE_SWORD.value,
         jnp.logical_and(
@@ -2258,6 +2262,8 @@ def update_player_intrinsics(state, action, static_params):
     )
 
     all_necessities = necessities.all(axis=1)
+    new_all_necessities_frac = (state.all_necessities_frac * state.timestep + all_necessities)/(state.timestep+1)
+
     recover_all = jnp.where(
         state.is_sleeping, 
         2.0, 
@@ -2316,6 +2322,7 @@ def update_player_intrinsics(state, action, static_params):
     state = state.replace(
         player_recover_mana=jnp.where(state.player_alive, new_recover_mana, state.player_recover_mana),
         player_mana=jnp.where(state.player_alive, new_mana, state.player_mana),
+        all_necessities_frac=new_all_necessities_frac
     )
 
     return state
@@ -3370,6 +3377,8 @@ def calculate_inventory_achievements(state):
 def trade_materials(state, action, static_params):
     new_achievements = state.achievements
     new_trade_count = state.trade_count
+    new_food_trade_count = state.food_trade_count
+    new_drink_trade_count = state.drink_trade_count
 
     player_trading_to = action - Action.GIVE.value
     is_giving = jnp.logical_and(
@@ -3404,8 +3413,9 @@ def trade_materials(state, action, static_params):
         return new_material, old_trade_count + is_giving_material.sum()
     
     # Food
-    new_food, new_trade_count = _new_material_value(
-        Action.REQUEST_FOOD.value, state.player_food, get_max_food(state), new_trade_count
+    food_trade_count = 0
+    new_food, food_trade_count = _new_material_value(
+        Action.REQUEST_FOOD.value, state.player_food, get_max_food(state), food_trade_count
     )
     new_hunger = jnp.where(new_food>state.player_food, 0.0, state.player_hunger)
     new_achievements = new_achievements.at[:, Achievement.COLLECT_FOOD.value].set(
@@ -3413,10 +3423,13 @@ def trade_materials(state, action, static_params):
             new_achievements[:, Achievement.COLLECT_FOOD.value], new_food>state.player_food
         )
     )
+    new_food_trade_count += food_trade_count
+    new_trade_count += food_trade_count
     
     # Drink
-    new_drink, new_trade_count = _new_material_value(
-        Action.REQUEST_DRINK.value, state.player_drink, get_max_drink(state), new_trade_count
+    drink_trade_count = 0
+    new_drink, drink_trade_count = _new_material_value(
+        Action.REQUEST_DRINK.value, state.player_drink, get_max_drink(state), drink_trade_count
     )
     new_thirst = jnp.where(new_drink>state.player_drink, 0.0, state.player_thirst)
     new_achievements = new_achievements.at[:, Achievement.COLLECT_DRINK.value].set(
@@ -3424,6 +3437,8 @@ def trade_materials(state, action, static_params):
             new_achievements[:, Achievement.COLLECT_DRINK.value], new_drink>state.player_drink
         )
     )
+    new_drink_trade_count += drink_trade_count
+    new_trade_count += drink_trade_count
 
     # Inventory Materials
     new_wood, new_trade_count = _new_material_value(
@@ -3465,6 +3480,8 @@ def trade_materials(state, action, static_params):
         ),
         achievements=new_achievements,
         trade_count=new_trade_count,
+        food_trade_count=new_food_trade_count,
+        drink_trade_count=new_drink_trade_count,
     )
     return state
 
