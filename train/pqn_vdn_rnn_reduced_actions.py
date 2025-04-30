@@ -2,7 +2,7 @@
 import os
 import sys
 sys.path.append('/app/Craftax/craftax')
-os.environ["CUDA_VISIBLE_DEVICES"] = "6,"
+os.environ["CUDA_VISIBLE_DEVICES"] = "7,"
 
 import copy
 import jax
@@ -794,7 +794,7 @@ def tune(default_config):
 config = {
     "WANDB_MODE": "online",
     "PROJECT": "pqn-vdn-rnn_craftax-ma-3-agents",
-    "RUN_NAME": "disable_spec-3_agent-reduce_actions-lr_2e4-λ_0.35",
+    "RUN_NAME": "disable_spec-3_agent-reduce_actions-disable_ff",
     "ENTITY": "b2alomar-university-of-waterloo",
 
     "ALG_NAME": "pqn-vdn-rnn",
@@ -814,12 +814,12 @@ config = {
     "NUM_LAYERS": 1,
     "NUM_RNN_LAYERS": 1,
     "ADD_LAST_ACTION": True,  # adds last action to the input of the rnn
-    "LR": 0.0002,
+    "LR": 0.0003,
     "MAX_GRAD_NORM": 0.5,
     "LR_LINEAR_DECAY": True,
     "REW_SCALE": 1.0,
     "GAMMA": 0.99,
-    "LAMBDA": 0.35,
+    "LAMBDA": 0.5,
     # env specific
     "ENV_NAME": "Craftax-Symbolic-v1",
     "USE_OPTIMISTIC_RESETS": True,
