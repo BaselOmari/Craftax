@@ -5,7 +5,7 @@ Based on PureJaxRL Implementation of IPPO, with changes to give a centralised cr
 import os
 import sys
 sys.path.append('/app/Craftax/craftax')
-os.environ["CUDA_VISIBLE_DEVICES"] = "3,"
+os.environ["CUDA_VISIBLE_DEVICES"] = "5,"
 
 import jax
 import jax.numpy as jnp
@@ -502,27 +502,29 @@ def make_train(config, env):
             
             train_states = update_state[0]
             metric = traj_batch.info
-            metric["achievements"] = {}
-            metric["achievements"].update(jax.tree.map(lambda x: x[-1, :].mean(), traj_batch.info["user_info"]))
-            print("Achievement Drink Example:", traj_batch.info["user_info"]["Achievements/collect_drink"])
-            print("Achievement Drink Shape:", traj_batch.info["user_info"]["Achievements/collect_drink"].shape)
             metric["loss"] = loss_info
+            metric["update_steps"] = update_steps
             rng = update_state[-1]
 
             def callback(metric):
-                # print("METRIC:", metric)
-                wandb.log(
-                    {
-                        "returns": metric["returned_episode_returns"][-1, :].mean(),
-                        "env_step": metric["update_steps"]
+                to_log = {
+                    "env_step": metric["update_steps"]
                         * config["NUM_ENVS"]
                         * config["NUM_STEPS"],
-                        **metric["loss"],
-                        **metric["achievements"],
-                    }
-                )
+                    **metric["loss"],
+                }
+                
+                if metric["returned_episode"].any():
+                    to_log.update(jax.tree.map(
+                        lambda x: x[metric["returned_episode"]].mean(),
+                        metric["user_info"]
+                    ))
+                    to_log["episode_lengths"] = metric["returned_episode_lengths"][metric["returned_episode"]].mean()
+                    to_log["episode_returns"] = metric["returned_episode_returns"][metric["returned_episode"]].mean()
+                
+                print(to_log)
+                wandb.log(to_log)
                             
-            metric["update_steps"] = update_steps
             jax.experimental.io_callback(callback, None, metric)
             update_steps = update_steps + 1
             runner_state = (train_states, env_state, last_obs, last_done, hstates, rng)
@@ -573,8 +575,10 @@ def single_run(config):
 config = {
     "WANDB_MODE": "online",
     "PROJECT": "pqn-vdn-rnn_craftax-ma-3-agents",
-    "RUN_NAME": "mappo-3_agent-with_achievements",
-    # "RUN_NAME": "debug_info_reporting",
+    # "RUN_NAME": "mappo-3_agent-with_trade_achievement_len",
+    # "RUN_NAME": "to_debug_mappo-metrics_revive-reward",
+    # "RUN_NAME": "mappo-3_agent-revive-remove_dashboard-passive_mobs++-chest_removed-recovery++",
+    "RUN_NAME": "mappo-3_agent-revive_recover-remove_dashboard-passive_mobs++-chest_removed-recovery++",
     "ENTITY": "b2alomar-university-of-waterloo",
 
     "ALG_NAME": "mappo-rnn",
@@ -616,3 +620,5 @@ config = {
     "SEED": 0,
 }
 single_run(config)
+
+# %%
