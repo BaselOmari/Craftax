@@ -147,6 +147,8 @@ def render_craftax_symbolic(state: EnvState, static_params: StaticEnvParams):
 
         return teammate_map, teammate_directions
     teammate_map, teammate_directions = jax.vmap(_add_teammate, in_axes=0)(jnp.arange(static_params.player_count))
+        # return teammate_map 
+    # teammate_map  = jax.vmap(_add_teammate, in_axes=0)(jnp.arange(static_params.player_count))
 
     # Concat all maps
     all_map = jnp.concatenate(
@@ -202,7 +204,7 @@ def render_craftax_symbolic(state: EnvState, static_params: StaticEnvParams):
 
     intrinsics = jnp.stack(
         (
-            # state.player_health / 10.0, -- Removed and placed as part of the teammate dashboard
+            # state.player_health / 10.0, # -- Removed and placed as part of the teammate dashboard
             state.player_food / 10.0,
             state.player_drink / 10.0,
             state.player_energy / 10.0,

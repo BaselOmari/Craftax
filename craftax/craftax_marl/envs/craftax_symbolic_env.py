@@ -123,10 +123,11 @@ class CraftaxMARLSymbolicEnv(MultiAgentEnv):
         return num_inventory + num_potions + num_intrinsics + num_directions + num_armour + num_armour_enchantments + num_special_values + num_special_level_values
     
     def observation_shape(self) -> spaces.Box:
-        flat_map_obs_shape = self.get_flat_map_obs_shape()
-        teammate_dashboard_obs_shape = self.get_teammate_dashboard_obs_shape()
-        inventory_obs_shape = self.get_inventory_obs_shape()
-        obs_shape = flat_map_obs_shape + teammate_dashboard_obs_shape + inventory_obs_shape
+        obs_shape = (
+            self.get_flat_map_obs_shape() + 
+            self.get_teammate_dashboard_obs_shape() + 
+            self.get_inventory_obs_shape()
+        )
 
         return spaces.Box(
             0.0,
