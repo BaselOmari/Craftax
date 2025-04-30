@@ -119,6 +119,11 @@ class EnvState:
 
     timestep: int
 
+    # cooperation metrics
+    trade_count: int
+    revives: int
+    ff_damage_dealt: float
+
     fractal_noise_angles: tuple[int, int, int, int] = (None, None, None, None)
 
 

@@ -37,6 +37,8 @@ def interplayer_interaction(state, block_position, is_doing_action, env_params, 
     )
     state = state.replace(
         player_health=new_player_health,
+        revives=state.revives+is_player_being_revived.sum(),
+        ff_damage_dealt=state.ff_damage_dealt+damage_taken.sum(),
     )
     return state
 
@@ -3367,7 +3369,7 @@ def calculate_inventory_achievements(state):
 
 def trade_materials(state, action, static_params):
     new_achievements = state.achievements
-    
+    new_trade_count = state.trade_count
 
     player_trading_to = action - Action.GIVE.value
     is_giving = jnp.logical_and(
@@ -3382,7 +3384,7 @@ def trade_materials(state, action, static_params):
         state.player_alive[player_trading_to]
     )
 
-    def _new_material_value(material_type, current_material_stock, material_max_value):
+    def _new_material_value(material_type, current_material_stock, material_max_value, old_trade_count):
         other_player_is_requesting_material = jnp.logical_and(
             other_player_is_requesting,
             state.request_type[player_trading_to] == material_type
@@ -3399,11 +3401,11 @@ def trade_materials(state, action, static_params):
         )
         new_material = current_material_stock - 1 * is_giving_material
         new_material = new_material.at[player_trading_to].add(is_giving_material)
-        return new_material
+        return new_material, old_trade_count + is_giving_material.sum()
     
     # Food
-    new_food = _new_material_value(
-        Action.REQUEST_FOOD.value, state.player_food, get_max_food(state)
+    new_food, new_trade_count = _new_material_value(
+        Action.REQUEST_FOOD.value, state.player_food, get_max_food(state), new_trade_count
     )
     new_hunger = jnp.where(new_food>state.player_food, 0.0, state.player_hunger)
     new_achievements = new_achievements.at[:, Achievement.COLLECT_FOOD.value].set(
@@ -3413,8 +3415,8 @@ def trade_materials(state, action, static_params):
     )
     
     # Drink
-    new_drink = _new_material_value(
-        Action.REQUEST_DRINK.value, state.player_drink, get_max_drink(state)
+    new_drink, new_trade_count = _new_material_value(
+        Action.REQUEST_DRINK.value, state.player_drink, get_max_drink(state), new_trade_count
     )
     new_thirst = jnp.where(new_drink>state.player_drink, 0.0, state.player_thirst)
     new_achievements = new_achievements.at[:, Achievement.COLLECT_DRINK.value].set(
@@ -3424,26 +3426,26 @@ def trade_materials(state, action, static_params):
     )
 
     # Inventory Materials
-    new_wood = _new_material_value(
-        Action.REQUEST_WOOD.value, state.inventory.wood, 99
+    new_wood, new_trade_count = _new_material_value(
+        Action.REQUEST_WOOD.value, state.inventory.wood, 99, new_trade_count
     )
-    new_stone = _new_material_value(
-        Action.REQUEST_STONE.value, state.inventory.stone, 99
+    new_stone, new_trade_count = _new_material_value(
+        Action.REQUEST_STONE.value, state.inventory.stone, 99, new_trade_count
     )
-    new_iron = _new_material_value(
-        Action.REQUEST_IRON.value, state.inventory.iron, 99
+    new_iron, new_trade_count = _new_material_value(
+        Action.REQUEST_IRON.value, state.inventory.iron, 99, new_trade_count
     )
-    new_coal = _new_material_value(
-        Action.REQUEST_COAL.value, state.inventory.coal, 99
+    new_coal, new_trade_count = _new_material_value(
+        Action.REQUEST_COAL.value, state.inventory.coal, 99, new_trade_count
     )
-    new_diamond = _new_material_value(
-        Action.REQUEST_DIAMOND.value, state.inventory.diamond, 99
+    new_diamond, new_trade_count = _new_material_value(
+        Action.REQUEST_DIAMOND.value, state.inventory.diamond, 99, new_trade_count
     )
-    new_ruby = _new_material_value(
-        Action.REQUEST_RUBY.value, state.inventory.ruby, 99
+    new_ruby, new_trade_count = _new_material_value(
+        Action.REQUEST_RUBY.value, state.inventory.ruby, 99, new_trade_count
     )
-    new_sapphire = _new_material_value(
-        Action.REQUEST_SAPPHIRE.value, state.inventory.sapphire, 99
+    new_sapphire, new_trade_count = _new_material_value(
+        Action.REQUEST_SAPPHIRE.value, state.inventory.sapphire, 99, new_trade_count
     )
 
     # Update State
@@ -3462,6 +3464,7 @@ def trade_materials(state, action, static_params):
             sapphire=new_sapphire,
         ),
         achievements=new_achievements,
+        trade_count=new_trade_count,
     )
     return state
 

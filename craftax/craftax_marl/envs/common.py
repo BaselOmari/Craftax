@@ -30,4 +30,8 @@ def compute_score_mappo(state: EnvState, done: bool, player_names: List, static_
             achievements[:, achievement.value].max(), 
             static_params.player_count
         )
+    info["trade_count"] = jnp.repeat(state.trade_count, static_params.player_count)
+    info["ff_damage_dealt"] = jnp.repeat(state.ff_damage_dealt, static_params.player_count)
+    info["revives"] = jnp.repeat(state.revives, static_params.player_count)
+    info["final_player_recover"] = state.player_recover
     return info
