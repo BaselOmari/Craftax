@@ -478,51 +478,53 @@ def single_run(config):
     outs = jax.block_until_ready(train_vjit(rngs))
 
 # %%
-config = {
-    "WANDB_MODE": "online",
-    "PROJECT": "pqn-vdn-rnn_craftax-ma-3-agents",
-    # "RUN_NAME": "ippo-3_agent-with_trade_achievement_len",
-    # "RUN_NAME": "to_debug_ippo_metrics",
-    "RUN_NAME": "ippo-3_agent-revive-remove_dashboard-passive_mobs++-chest_removed-recovery++",
-    "ENTITY": "b2alomar-university-of-waterloo",
+if __name__ == "__main__":
+    config = {
+        "WANDB_MODE": "online",
+        "PROJECT": "pqn-vdn-rnn_craftax-ma-3-agents",
+        # "RUN_NAME": "ippo-3_agent-with_trade_achievement_len",
+        # "RUN_NAME": "to_debug_ippo_metrics",
+        "RUN_NAME": "ippo-revive-chest_removed-recovery++-seed_1",
+        # "RUN_NAME": "ippo-revive-chest_removed-constant_recovery",
+        "ENTITY": "b2alomar-university-of-waterloo",
 
-    "ALG_NAME": "ippo-rnn",
-    "TOTAL_TIMESTEPS": 1e9,
-    "NUM_ENVS": 1024,
-    "NUM_STEPS": 64,
-    "NUM_MINIBATCHES": 8,
-    "UPDATE_EPOCHS": 4,  # <-- renamed from NUM_EPOCHS
-    "GRU_HIDDEN_DIM": 512,  # <-- renamed from HIDDEN_SIZE
-    "FC_DIM_SIZE": 128,     # <-- inferred from usage in ActorCriticRNN
-    "ACTIVATION": "tanh",
-    "GAE_LAMBDA": 0.8,  # <-- renamed from LAMBDA
-    "GAMMA": 0.99,
-    "CLIP_EPS": 0.2,
-    "ENT_COEF": 0.01,
-    "VF_COEF": 0.5,
+        "ALG_NAME": "ippo-rnn",
+        "TOTAL_TIMESTEPS": 1e9,
+        "NUM_ENVS": 1024,
+        "NUM_STEPS": 64,
+        "NUM_MINIBATCHES": 8,
+        "UPDATE_EPOCHS": 4,  # <-- renamed from NUM_EPOCHS
+        "GRU_HIDDEN_DIM": 512,  # <-- renamed from HIDDEN_SIZE
+        "FC_DIM_SIZE": 128,     # <-- inferred from usage in ActorCriticRNN
+        "ACTIVATION": "tanh",
+        "GAE_LAMBDA": 0.8,  # <-- renamed from LAMBDA
+        "GAMMA": 0.99,
+        "CLIP_EPS": 0.2,
+        "ENT_COEF": 0.01,
+        "VF_COEF": 0.5,
 
-    "ANNEAL_LR": True,  # <-- renamed from LR_LINEAR_DECAY
-    "LR": 2e-4,
-    "MAX_GRAD_NORM": 1.0,
-    "LR_WARMUP": 0.0,  # <-- added for learning rate schedule
-    "REW_SHAPING_HORIZON": 1e6,
+        "ANNEAL_LR": True,  # <-- renamed from LR_LINEAR_DECAY
+        "LR": 2e-4,
+        "MAX_GRAD_NORM": 1.0,
+        "LR_WARMUP": 0.0,  # <-- added for learning rate schedule
+        "REW_SHAPING_HORIZON": 1e6,
 
-    # env specific
-    "ENV_NAME": "Craftax-Symbolic-v1",
-    "USE_OPTIMISTIC_RESETS": True,
-    "OPTIMISTIC_RESET_RATIO": 16,
-    "LOG_ACHIEVEMENTS": False,
+        # env specific
+        "ENV_NAME": "Craftax-Symbolic-v1",
+        "USE_OPTIMISTIC_RESETS": True,
+        "OPTIMISTIC_RESET_RATIO": 16,
+        "LOG_ACHIEVEMENTS": False,
 
-    # evaluation
-    "TEST_DURING_TRAINING": False,
-    "TEST_INTERVAL": 0.01,
-    "TEST_NUM_ENVS": 512,
-    "TEST_NUM_STEPS": 10000,
-    "EPS_TEST": 0.0,
+        # evaluation
+        "TEST_DURING_TRAINING": False,
+        "TEST_INTERVAL": 0.01,
+        "TEST_NUM_ENVS": 512,
+        "TEST_NUM_STEPS": 10000,
+        "EPS_TEST": 0.0,
 
-    "NUM_SEEDS": 1,
-    "SEED": 0,
-}
-single_run(config)
+        "NUM_SEEDS": 1,
+        "SEED": 100,
+    }
+    single_run(config)
 
 # %%
