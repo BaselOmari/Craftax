@@ -119,6 +119,16 @@ class EnvState:
 
     timestep: int
 
+    # cooperation metrics
+    trade_count: int
+    food_trade_count: int
+    drink_trade_count: int
+    revives: int
+    ff_damage_dealt: float
+
+    # Misc Metrics
+    all_necessities_frac: jnp.ndarray
+
     fractal_noise_angles: tuple[int, int, int, int] = (None, None, None, None)
 
 

@@ -3,7 +3,7 @@ from functools import partial
 
 from craftax_marl.constants import *
 from craftax_marl.craftax_state import EnvState, StaticEnvParams
-from craftax_marl.util.game_logic_utils import is_boss_vulnerable, get_player_icon_positions
+from craftax_marl.util.game_logic_utils import is_boss_vulnerable
 
 
 def render_craftax_symbolic(state: EnvState, static_params: StaticEnvParams):
@@ -147,6 +147,8 @@ def render_craftax_symbolic(state: EnvState, static_params: StaticEnvParams):
 
         return teammate_map, teammate_directions
     teammate_map, teammate_directions = jax.vmap(_add_teammate, in_axes=0)(jnp.arange(static_params.player_count))
+        # return teammate_map 
+    # teammate_map  = jax.vmap(_add_teammate, in_axes=0)(jnp.arange(static_params.player_count))
 
     # Concat all maps
     all_map = jnp.concatenate(
@@ -202,7 +204,7 @@ def render_craftax_symbolic(state: EnvState, static_params: StaticEnvParams):
 
     intrinsics = jnp.stack(
         (
-            # state.player_health / 10.0, -- Removed and placed as part of the teammate dashboard
+            # state.player_health / 10.0, # -- Removed and placed as part of the teammate dashboard
             state.player_food / 10.0,
             state.player_drink / 10.0,
             state.player_energy / 10.0,
@@ -258,7 +260,7 @@ def render_craftax_symbolic(state: EnvState, static_params: StaticEnvParams):
         (players_health[:, None], players_alive[:, None], players_specialization, requested_material),
         axis=-1
     ).flatten()
-    teammate_dashboard = jnp.repeat(teammate_dashboard[None, ...], 3, axis=0)
+    teammate_dashboard = jnp.repeat(teammate_dashboard[None, ...], static_params.player_count, axis=0)
 
     all_flattened = jnp.concatenate(
         [

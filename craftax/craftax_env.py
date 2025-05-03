@@ -16,11 +16,9 @@ from craftax.craftax_classic.envs.craftax_symbolic_env import (
 )
 from craftax.craftax_marl.envs.craftax_symbolic_env import (
     CraftaxMARLSymbolicEnv,
-    CraftaxMARLSymbolicEnvNoAutoReset,
 )
 from craftax.craftax_marl.envs.craftax_pixels_env import (
     CraftaxMARLPixelsEnv,
-    CraftaxMARLPixelsEnvNoAutoReset,
 )
 
 
