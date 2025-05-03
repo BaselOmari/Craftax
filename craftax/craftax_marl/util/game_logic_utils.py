@@ -297,7 +297,9 @@ def get_player_damage_vector(state):
         [1, 2, 3, 5, 8],
         dtype=jnp.int32,
     )
-    physical_damage = physical_damages[state.inventory.sword]
+    physical_damage = (
+        physical_damages[state.inventory.sword] * (1 + (state.player_specialization == Specialization.WARRIOR.value))
+    ) # warrior has 2x base damage
     fire_damage = physical_damage * (state.sword_enchantment == 1) * 0.5
     ice_damage = physical_damage * (state.sword_enchantment == 2) * 0.5
 
@@ -442,11 +444,11 @@ def get_max_health(state):
 
 
 def get_max_food(state):
-    return (7 + 2 * state.player_dexterity) * (1 + (state.player_specialization == Specialization.FORAGER.value) * 1)
+    return (7 + 2 * state.player_dexterity) * (1 + (state.player_specialization == Specialization.FORAGER.value) * 2)
 
 
 def get_max_drink(state):
-    return (7 + 2 * state.player_dexterity) * (1 + (state.player_specialization == Specialization.FORAGER.value) * 1)
+    return (7 + 2 * state.player_dexterity) * (1 + (state.player_specialization == Specialization.FORAGER.value) * 2)
 
 
 def get_max_energy(state):

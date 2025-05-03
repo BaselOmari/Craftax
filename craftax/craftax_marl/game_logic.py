@@ -32,7 +32,7 @@ def interplayer_interaction(state, block_position, is_doing_action, env_params, 
 
     new_player_health = jnp.where(
         is_player_being_revived,
-        1.0,
+        2.0,
         state.player_health - damage_taken,
     )
     state = state.replace(
@@ -68,7 +68,7 @@ def add_items_from_chest(rng, state, inventory, is_opening_chest):
 
     # Wood (60%)
     rng, _rng = jax.random.split(rng)
-    is_looting_wood = jax.random.uniform(_rng) < 0.6 * is_opening_chest
+    is_looting_wood = jax.random.uniform(_rng) < 0.6 * is_opening_chest *is_miner
     rng, _rng = jax.random.split(rng)
     wood_loot_amount = (
         jax.random.randint(_rng, shape=(), minval=1, maxval=6) * is_looting_wood
@@ -76,7 +76,7 @@ def add_items_from_chest(rng, state, inventory, is_opening_chest):
 
     # Torch (60%)
     rng, _rng = jax.random.split(rng)
-    collect_prob = 0.1 + 0.5 * is_miner
+    collect_prob = 0.6 * is_miner
     is_looting_torch = jax.random.uniform(_rng) < collect_prob * is_opening_chest
     rng, _rng = jax.random.split(rng)
     torch_loot_amount = (
@@ -145,7 +145,11 @@ def add_items_from_chest(rng, state, inventory, is_opening_chest):
     tool_id = jax.random.randint(_rng, shape=(), minval=0, maxval=2)
 
     is_looting_pickaxe = jnp.logical_and(
-        jnp.logical_and(is_looting_tool, tool_id == 0), is_opening_chest
+        jnp.logical_and(
+            is_miner,
+            jnp.logical_and(is_looting_tool, tool_id == 0)
+        ),
+        is_opening_chest
     )
     rng, _rng = jax.random.split(rng)
     pickaxe_loot_level = (
@@ -157,47 +161,46 @@ def add_items_from_chest(rng, state, inventory, is_opening_chest):
         )
         * is_looting_pickaxe
     )
-    pickaxe_loot_level = jnp.where( # only miners can own pickaxes above level 1 (wood)
-        is_miner,
-        pickaxe_loot_level,
-        1
-    )
     pickaxe_loot_level = jnp.maximum(pickaxe_loot_level, inventory.pickaxe)
     new_pickaxe_level = (
         is_looting_pickaxe * pickaxe_loot_level
         + (1 - is_looting_pickaxe) * inventory.pickaxe
     )
 
-    is_looting_sword = jnp.logical_and(
-        jnp.logical_and(is_looting_tool, tool_id == 1), is_opening_chest
-    )
-    rng, _rng = jax.random.split(rng)
-    sword_loot_level = (
-        jax.random.choice(
-            _rng,
-            (jnp.arange(3) + 2).astype(int),
-            shape=(),
-            p=jnp.array([0.5, 0.3, 0.2]),
-        )
-        * is_looting_sword
-    )
-    sword_loot_level = jnp.where( # only warriors can own swords above level 2 (stone)
-        is_warrior,
-        sword_loot_level,
-        2
-    )
-    sword_loot_level = jnp.maximum(sword_loot_level, inventory.sword)
-    new_sword_level = (
-        is_looting_sword * sword_loot_level + (1 - is_looting_sword) * inventory.sword
-    )
+    # # REMOVED TO FORCE SWORD MAKING THROUGH TRADING WITH MINER 
+    # is_looting_sword = jnp.logical_and(
+    #     jnp.logical_and(is_looting_tool, tool_id == 1), is_opening_chest
+    # )
+    # rng, _rng = jax.random.split(rng)
+    # sword_loot_level = (
+    #     jax.random.choice(
+    #         _rng,
+    #         (jnp.arange(3) + 2).astype(int),
+    #         shape=(),
+    #         p=jnp.array([0.5, 0.3, 0.2]),
+    #     )
+    #     * is_looting_sword
+    # )
+    # sword_loot_level = jnp.where( # only warriors can own swords above level 1 (wood)
+    #     is_warrior,
+    #     sword_loot_level,
+    #     1
+    # )
+    # sword_loot_level = jnp.maximum(sword_loot_level, inventory.sword)
+    # new_sword_level = (
+    #     is_looting_sword * sword_loot_level + (1 - is_looting_sword) * inventory.sword
+    # )
 
     # Special chests
     is_looting_bow = jnp.logical_and(
-        is_opening_chest,
+        jnp.logical_and(
+            is_opening_chest,
+            is_warrior,
+        ),
         jnp.logical_and(
             state.player_level == 1,
             jnp.logical_not(state.chests_opened[state.player_level]),
-        ),
+        )
     )
     new_bow_level = is_looting_bow * 1 + (1 - is_looting_bow) * inventory.bow
 
@@ -212,16 +215,16 @@ def add_items_from_chest(rng, state, inventory, is_opening_chest):
 
     # Update inventory
     return inventory.replace(
-        wood=inventory.wood + wood_loot_amount,
+        wood=inventory.wood + wood_loot_amount*is_miner,
         torches=inventory.torches + torch_loot_amount,
-        coal=inventory.coal + coal_loot_amount,
-        iron=inventory.iron + iron_loot_amount,
-        diamond=inventory.diamond + diamond_loot_amount,
-        sapphire=inventory.sapphire + sapphire_loot_amount,
-        ruby=inventory.ruby + ruby_loot_amount,
+        coal=inventory.coal + coal_loot_amount*is_miner,
+        iron=inventory.iron + iron_loot_amount*is_miner,
+        diamond=inventory.diamond + diamond_loot_amount*is_miner,
+        sapphire=inventory.sapphire + sapphire_loot_amount*is_miner,
+        ruby=inventory.ruby + ruby_loot_amount*is_miner,
         arrows=inventory.arrows + arrows_loot_amount,
         pickaxe=new_pickaxe_level,
-        sword=new_sword_level,
+        # sword=new_sword_level,
         potions=inventory.potions.at[:, potion_loot_index].set(
             inventory.potions[:, potion_loot_index]
             + potion_loot_amount * is_looting_potion * is_opening_chest
@@ -2262,13 +2265,15 @@ def update_player_intrinsics(state, action, static_params):
     )
 
     all_necessities = necessities.all(axis=1)
+    # all_necessities = jnp.full((static_params.player_count,), True, dtype=bool)
+
     new_all_necessities_frac = (state.all_necessities_frac * state.timestep + all_necessities)/(state.timestep+1)
 
     recover_all = jnp.where(
         state.is_sleeping, 
         2.0, 
         1.0,
-    )
+    ) * 2.0
     recover_not_all = jnp.where(
         state.is_sleeping, 
         -0.5, 
@@ -2278,7 +2283,7 @@ def update_player_intrinsics(state, action, static_params):
 
     new_recover = state.player_recover + recover_add
 
-    recovered_health = jnp.minimum(state.player_health + 1, get_max_health(state))
+    recovered_health = jnp.minimum(state.player_health + 2, get_max_health(state))
     derecovered_health = state.player_health - 1
 
     new_health = jnp.where(new_recover > 25, recovered_health, state.player_health)
@@ -2539,6 +2544,9 @@ def spawn_mobs(state, rng, params, static_params):
     )
 
     # Monsters
+    DUNGEONS = jnp.array([1, 3, 4])
+    in_dungeon = (state.player_level == DUNGEONS).any()
+
     monsters_can_spawn_player_range_map = player_distance_map > 9
     monsters_can_spawn_player_range_map_boss = player_distance_map <= 6
 
@@ -2550,7 +2558,14 @@ def spawn_mobs(state, rng, params, static_params):
 
     # Melee mobs
     can_spawn_melee_mob = (
-        state.melee_mobs.mask[state.player_level].sum() < static_params.max_melee_mobs * static_params.player_count
+        state.melee_mobs.mask[state.player_level].sum() < 
+        (
+            static_params.max_melee_mobs * 
+            (
+                static_params.player_count * (1 - in_dungeon) + 
+                1 * in_dungeon # reduce number of mobs if in dungeons to avoid crowdedness
+            )
+        )
     )
 
     new_melee_mob_type = FLOOR_MOB_MAPPING[state.player_level, MobType.MELEE.value]
@@ -2666,7 +2681,14 @@ def spawn_mobs(state, rng, params, static_params):
 
     # Ranged mobs
     can_spawn_ranged_mob = (
-        state.ranged_mobs.mask[state.player_level].sum() < static_params.max_ranged_mobs * static_params.player_count
+        state.ranged_mobs.mask[state.player_level].sum() <
+        (
+            static_params.max_melee_mobs * 
+            (
+                static_params.player_count * (1 - in_dungeon) + 
+                1 * in_dungeon # reduce number of mobs if in dungeons to avoid crowdedness
+            )
+        )
     )
 
     new_ranged_mob_type = FLOOR_MOB_MAPPING[state.player_level, MobType.RANGED.value]
@@ -3634,11 +3656,12 @@ def craftax_step(
 
     # Gain reward if player gained health
     # Doesn't apply to revived players
-    health_reward = jnp.where(
-        state.player_alive,
-        (state.player_health - init_health) * 0.1,
-        0.0
-    )
+    # health_reward = jnp.where(
+    #     state.player_alive,
+    #     (state.player_health - init_health) * 0.1,
+    #     0.0
+    # )
+    health_reward = (state.player_health - init_health) * 0.1
 
     individual_reward = achievement_reward + health_reward
     shared_reward = individual_reward.sum().repeat(static_params.player_count)
