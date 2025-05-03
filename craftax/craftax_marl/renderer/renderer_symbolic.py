@@ -104,6 +104,13 @@ def render_craftax_symbolic(state: EnvState, static_params: StaticEnvParams):
         ),
         jnp.arange(state.player_projectiles.mask.shape[1]),
     )
+
+    def reorder_teammate_info(teammate_info, player_index):
+        i1 = (jnp.arange(static_params.player_count) == 0) * player_index
+        i2 = jnp.logical_and(jnp.arange(static_params.player_count) > 0, jnp.arange(static_params.player_count) <= (player_index)) * (jnp.arange(static_params.player_count) - 1)
+        i3 = (jnp.arange(static_params.player_count) > player_index) * (jnp.arange(static_params.player_count))
+        indices = (i1 + i2 + i3)
+        return teammate_info[indices].flatten()
     
     # Teammate map (One-hot encoding of teammate + bit for dead/alive)
     def _add_teammate(player_index):
@@ -122,7 +129,12 @@ def render_craftax_symbolic(state: EnvState, static_params: StaticEnvParams):
 
         # Add teammate encoding
         teammate_map = teammate_map.at[
-            local_position[:, 0], local_position[:, 1], jnp.arange(static_params.player_count)
+            local_position[:, 0], local_position[:, 1],
+            (
+                (jnp.arange(static_params.player_count) < player_index) * (jnp.arange(static_params.player_count) + 1) +
+                (jnp.arange(static_params.player_count) == player_index) * 0 +
+                (jnp.arange(static_params.player_count) > player_index) * (jnp.arange(static_params.player_count))
+            )
         ].max(on_screen)
 
         # Add dead/alive bit
@@ -144,7 +156,7 @@ def render_craftax_symbolic(state: EnvState, static_params: StaticEnvParams):
         )
         direction_index = direction_index_2d[:, 0]*3 + direction_index_2d[:, 1] - 1
         teammate_directions = jax.nn.one_hot(direction_index, num_classes=8)
-
+        teammate_directions = reorder_teammate_info(teammate_directions, player_index)
         return teammate_map, teammate_directions
     teammate_map, teammate_directions = jax.vmap(_add_teammate, in_axes=0)(jnp.arange(static_params.player_count))
         # return teammate_map 
@@ -256,17 +268,17 @@ def render_craftax_symbolic(state: EnvState, static_params: StaticEnvParams):
         )
         * (state.request_duration > 0)[:, None]
     )
-    teammate_dashboard = jnp.concatenate(
+    player_data = jnp.concatenate(
         (players_health[:, None], players_alive[:, None], players_specialization, requested_material),
         axis=-1
-    ).flatten()
-    teammate_dashboard = jnp.repeat(teammate_dashboard[None, ...], static_params.player_count, axis=0)
+    )
+    teammate_dashboard = jax.vmap(lambda i: reorder_teammate_info(player_data, i))(jnp.arange(static_params.player_count))
 
     all_flattened = jnp.concatenate(
         [
             all_map.reshape(all_map.shape[0], -1),
             teammate_dashboard,
-            teammate_directions.reshape(teammate_directions.shape[0], -1),
+            teammate_directions,
             inventory,
             potions,
             intrinsics,
