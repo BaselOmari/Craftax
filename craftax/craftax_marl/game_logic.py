@@ -3403,12 +3403,10 @@ def trade_materials(state, action, static_params):
     new_drink_trade_count = state.drink_trade_count
 
     player_trading_to = action - Action.GIVE.value
+    player_trading_to += 1 * (player_trading_to >= jnp.arange(static_params.player_count))
     is_giving = jnp.logical_and(
-        jnp.logical_and(
-            action >= Action.GIVE.value, 
-            action < (Action.GIVE.value + static_params.player_count)
-        ),
-        player_trading_to != jnp.arange(static_params.player_count) # isn't giving to self 
+        action >= Action.GIVE.value, 
+        action < (Action.GIVE.value + static_params.player_count - 1)
     )
     other_player_is_requesting = jnp.logical_and(
         state.request_duration[player_trading_to] > 0,

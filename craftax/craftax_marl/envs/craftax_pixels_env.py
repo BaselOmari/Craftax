@@ -83,7 +83,7 @@ class CraftaxMARLPixelsEnv(MultiAgentEnv):
         return StaticEnvParams()
     
     def action_shape(self) -> spaces.Discrete:
-        return spaces.Discrete(len(Action) + (self.static_env_params.player_count - 1))
+        return spaces.Discrete(len(Action) + (self.static_env_params.player_count - 2))
         
     def observation_shape(self) -> spaces.Box:
         map_height = OBS_DIM[0]
