@@ -5,7 +5,7 @@ Based on PureJaxRL Implementation of IPPO, with changes to give a centralised cr
 import os
 import sys
 sys.path.append('/app/Craftax/craftax')
-os.environ["CUDA_VISIBLE_DEVICES"] = "5,"
+os.environ["CUDA_VISIBLE_DEVICES"] = "4,"
 
 import jax
 import jax.numpy as jnp
@@ -16,6 +16,7 @@ from flax.linen.initializers import constant, orthogonal
 from typing import Sequence, NamedTuple, Any, Tuple, Union, Dict
 import chex
 
+import flax
 from flax.training.train_state import TrainState
 import distrax
 from functools import partial
@@ -29,6 +30,7 @@ from jaxmarl.wrappers.baselines import (
     LogWrapper,
 )
 from craftax_marl.envs.craftax_symbolic_env import CraftaxMARLSymbolicEnv as CraftaxEnv
+import pickle
 
     
 class WorldStateWrapper(JaxMARLWrapper):
@@ -506,11 +508,14 @@ def make_train(config, env):
             metric["update_steps"] = update_steps
             rng = update_state[-1]
 
-            def callback(metric):
+            def callback(metric, actor_state: TrainState, step):
+                env_step = (
+                    metric["update_steps"]
+                    * config["NUM_ENVS"]
+                    * config["NUM_STEPS"]
+                )
                 to_log = {
-                    "env_step": metric["update_steps"]
-                        * config["NUM_ENVS"]
-                        * config["NUM_STEPS"],
+                    "env_step": env_step,
                     **metric["loss"],
                 }
                 
@@ -522,10 +527,21 @@ def make_train(config, env):
                     to_log["episode_lengths"] = metric["returned_episode_lengths"][metric["returned_episode"]].mean()
                     to_log["episode_returns"] = metric["returned_episode_returns"][metric["returned_episode"]].mean()
                 
+                if config["SAVE_DURING_TRAINING"]:
+                    save_dir = f"/app/Craftax/train/saved_states/{config['RUN_NAME']}"
+                    os.makedirs(save_dir, exist_ok=True)
+                    if step == 0:
+                        with open(f"{save_dir}/config.pkl", "wb+") as f:
+                            pickle.dump(config, f)
+                    if (step < 2500 and step % (config["SAVE_INTERVAL"]//10) == 0) or (step % config["SAVE_INTERVAL"])==0:
+                        state_bytes = flax.serialization.to_bytes(actor_state)
+                        with open(f"{save_dir}/actor_state_{env_step}", "wb+") as f:
+                            f.write(state_bytes)
+                
                 print(to_log)
                 wandb.log(to_log)
                             
-            jax.experimental.io_callback(callback, None, metric)
+            jax.experimental.io_callback(callback, None, metric, train_states[0], update_steps)
             update_steps = update_steps + 1
             runner_state = (train_states, env_state, last_obs, last_done, hstates, rng)
             return (runner_state, update_steps), metric
@@ -579,9 +595,10 @@ if __name__ == "__main__":
         # "RUN_NAME": "mappo-3_agent-with_trade_achievement_len",
         # "RUN_NAME": "to_debug_mappo-metrics_revive-reward",
         # "RUN_NAME": "mappo-3_agent-revive-remove_dashboard-passive_mobs++-chest_removed-recovery++",
-        # "RUN_NAME": "mappo-revive-chest_removed-recovery++-seed_2",
+        # "RUN_NAME": "mappo-revive-chest_removed-recovery++",
         # "RUN_NAME": "mappo-revive-chest_removed-constant_recovery",
-        "RUN_NAME": "save_debug",
+        "RUN_NAME": "mappo-chest_adjusted-dungeon_spawning-recovery++-teammate_rendering++",
+        # "RUN_NAME": "save_debug",
         "ENTITY": "b2alomar-university-of-waterloo",
 
         "ALG_NAME": "mappo-rnn",

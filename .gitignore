@@ -3,6 +3,8 @@ wandb/
 res/
 runs/
 
+train/saved_states
+
 play_data
 
 # Byte-compiled / optimized / DLL files

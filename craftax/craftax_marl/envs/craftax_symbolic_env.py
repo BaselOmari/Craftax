@@ -84,7 +84,7 @@ class CraftaxMARLSymbolicEnv(MultiAgentEnv):
         return StaticEnvParams()
     
     def action_shape(self) -> spaces.Discrete:
-        return spaces.Discrete(len(Action) + (self.static_env_params.player_count - 1))
+        return spaces.Discrete(len(Action) + (self.static_env_params.player_count - 2))
     
     def get_flat_map_obs_shape(self):
         num_mob_classes = 5
