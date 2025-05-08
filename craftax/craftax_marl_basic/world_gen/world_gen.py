@@ -657,9 +657,6 @@ def generate_world(rng, params, static_params):
             (static_params.player_count, len(Achievement)), dtype=bool
         ),
         light_level=jnp.asarray(calculate_light_level(0, params), dtype=jnp.float32),
-        trade_count=jnp.asarray(0, dtype=jnp.int32),
-        food_trade_count=jnp.asarray(0, dtype=jnp.int32),
-        drink_trade_count=jnp.asarray(0, dtype=jnp.int32),
         revives=jnp.asarray(0, dtype=jnp.int32),
         ff_damage_dealt=jnp.asarray(0.0, dtype=jnp.float32),
         all_necessities_frac=jnp.ones((static_params.player_count,), dtype=jnp.float32),

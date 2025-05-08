@@ -2872,7 +2872,7 @@ def shoot_projectile(state: EnvState, action: int, static_params: StaticEnvParam
 def cast_spell(state, action, static_params):
 
     def _cast_player_spell(player_info, player_index):
-        player_projectiles, player_projectile_directions, player_projectile_owners, player_health = player_info
+        player_projectiles, player_projectile_directions, player_projectile_owners = player_info
 
         is_casting_spell = jnp.logical_and(
             action[player_index] == Action.CAST_SPELL.value,
@@ -2900,20 +2900,18 @@ def cast_spell(state, action, static_params):
             ProjectileType.FIREBALL.value,
         )
 
-        return (new_player_projectiles, new_player_projectile_directions, new_player_projectile_owners, new_player_health), is_casting_fireball
+        return (new_player_projectiles, new_player_projectile_directions, new_player_projectile_owners), is_casting_fireball
     
     (
         new_player_projectiles, 
         new_player_projectile_directions, 
         new_player_projectile_owners,
-        new_player_health
     ), did_cast_spell = jax.lax.scan(
         _cast_player_spell, 
         (
             state.player_projectiles, 
             state.player_projectile_directions, 
             state.player_projectile_owners,
-            state.player_health,
         ), 
         jnp.arange(static_params.player_count)
     ) 
@@ -2925,7 +2923,6 @@ def cast_spell(state, action, static_params):
         player_projectiles=new_player_projectiles,
         player_projectile_directions=new_player_projectile_directions,
         player_projectile_owners=new_player_projectile_owners,
-        player_health=new_player_health,
         player_mana=state.player_mana - did_cast_spell*2,
         achievements=new_achievements,
     )

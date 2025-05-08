@@ -1,7 +1,7 @@
 from typing import List
 
-from craftax_marl.craftax_state import EnvState, StaticEnvParams
-from craftax_marl.constants import *
+from craftax_marl_basic.craftax_state import EnvState, StaticEnvParams
+from craftax_marl_basic.constants import *
 
 
 def compute_score(state: EnvState, done: bool, player_names: List, static_params: StaticEnvParams):

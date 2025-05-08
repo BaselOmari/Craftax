@@ -6,13 +6,13 @@ from jaxmarl.environments import spaces
 from jaxmarl.environments.multi_agent_env import MultiAgentEnv
 from typing import Dict, Tuple
 
-from craftax_marl.constants import *
-from craftax_marl.craftax_state import EnvState, EnvParams, StaticEnvParams
-from craftax_marl.envs.common import compute_score
-from craftax_marl.game_logic import craftax_step
-from craftax_marl.renderer.renderer_pixels import render_craftax_pixels
-from craftax_marl.util.game_logic_utils import has_beaten_boss
-from craftax_marl.world_gen.world_gen import generate_world
+from craftax_marl_basic.constants import *
+from craftax_marl_basic.craftax_state import EnvState, EnvParams, StaticEnvParams
+from craftax_marl_basic.envs.common import compute_score
+from craftax_marl_basic.game_logic import craftax_step
+from craftax_marl_basic.renderer.renderer_pixels import render_craftax_pixels
+from craftax_marl_basic.util.game_logic_utils import has_beaten_boss
+from craftax_marl_basic.world_gen.world_gen import generate_world
 
 
 class CraftaxMARLPixelsEnv(MultiAgentEnv):
