@@ -193,10 +193,15 @@ def make_train(config, env):
     env = LogWrapper(env)
 
     def linear_schedule(count):
-        frac = (
-            1.0
-            - (count // (config["NUM_MINIBATCHES"] * config["UPDATE_EPOCHS"]))
-            / config["NUM_UPDATES"]
+        num_updates_1b = 1e9 // (config["NUM_STEPS"] * config["NUM_ENVS"])
+        stopping_frac = 0.75
+
+        update_count = count // (config["NUM_MINIBATCHES"] * config["UPDATE_EPOCHS"])
+        
+        frac = jnp.where(
+            update_count >= (num_updates_1b*stopping_frac),
+            1.0-stopping_frac,
+            1.0-(update_count / num_updates_1b)
         )
         return config["LR"] * frac
 
@@ -592,18 +597,11 @@ if __name__ == "__main__":
     config = {
         "WANDB_MODE": "online",
         "PROJECT": "pqn-vdn-rnn_craftax-ma-3-agents",
-        # "RUN_NAME": "mappo-3_agent-with_trade_achievement_len",
-        # "RUN_NAME": "to_debug_mappo-metrics_revive-reward",
-        # "RUN_NAME": "mappo-3_agent-revive-remove_dashboard-passive_mobs++-chest_removed-recovery++",
-        # "RUN_NAME": "mappo-revive-chest_removed-recovery++",
-        # "RUN_NAME": "mappo-revive-chest_removed-constant_recovery",
-        # "RUN_NAME": "MAPPO - Base - Seed 2",
-        "RUN_NAME": "MAPPO - Base - Seed 2",
-        # "RUN_NAME": "save_debug",
+        "RUN_NAME": "MAPPO - 10B",
         "ENTITY": "b2alomar-university-of-waterloo",
 
         "ALG_NAME": "mappo-rnn",
-        "TOTAL_TIMESTEPS": 1e9,
+        "TOTAL_TIMESTEPS": 1e10,
         "NUM_ENVS": 512,
         "NUM_STEPS": 64,
         "NUM_MINIBATCHES": 8,
@@ -635,7 +633,7 @@ if __name__ == "__main__":
         "SAVE_INTERVAL": 2500,
 
         "NUM_SEEDS": 1,
-        "SEED": 0,
+        "SEED": 2,
     }
     single_run(config)
 

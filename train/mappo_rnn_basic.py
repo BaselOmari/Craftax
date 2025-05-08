@@ -5,7 +5,7 @@ Based on PureJaxRL Implementation of IPPO, with changes to give a centralised cr
 import os
 import sys
 sys.path.append('/app/Craftax/craftax')
-os.environ["CUDA_VISIBLE_DEVICES"] = "2,"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0,"
 
 import jax
 import jax.numpy as jnp
@@ -29,7 +29,7 @@ import functools
 from jaxmarl.wrappers.baselines import (
     LogWrapper,
 )
-from craftax_marl.envs.craftax_symbolic_env import CraftaxMARLSymbolicEnv as CraftaxEnv
+from craftax_marl_basic.envs.craftax_symbolic_env import CraftaxMARLSymbolicEnv as CraftaxEnv
 import pickle
 
     
@@ -565,7 +565,7 @@ def make_train(config, env):
 def single_run(config):
     alg_name = config.get("ALG_NAME", "mappo-rnn")
     env = CraftaxEnv()
-    env_name = "craftax-ma-symbolic"
+    env_name = "craftax-ma-basic-symbolic"
 
     wandb.init(
         entity=config["ENTITY"],
@@ -592,14 +592,7 @@ if __name__ == "__main__":
     config = {
         "WANDB_MODE": "online",
         "PROJECT": "pqn-vdn-rnn_craftax-ma-3-agents",
-        # "RUN_NAME": "mappo-3_agent-with_trade_achievement_len",
-        # "RUN_NAME": "to_debug_mappo-metrics_revive-reward",
-        # "RUN_NAME": "mappo-3_agent-revive-remove_dashboard-passive_mobs++-chest_removed-recovery++",
-        # "RUN_NAME": "mappo-revive-chest_removed-recovery++",
-        # "RUN_NAME": "mappo-revive-chest_removed-constant_recovery",
-        # "RUN_NAME": "MAPPO - Base - Seed 2",
-        "RUN_NAME": "MAPPO - Base - Seed 2",
-        # "RUN_NAME": "save_debug",
+        "RUN_NAME": "MAPPO - Basic - 1 Agent",
         "ENTITY": "b2alomar-university-of-waterloo",
 
         "ALG_NAME": "mappo-rnn",

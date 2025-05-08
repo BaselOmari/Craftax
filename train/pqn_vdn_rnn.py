@@ -2,7 +2,7 @@
 import os
 import sys
 sys.path.append('/app/Craftax/craftax')
-os.environ["CUDA_VISIBLE_DEVICES"] = "6,"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1,"
 
 import copy
 import jax

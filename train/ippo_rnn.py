@@ -9,6 +9,8 @@ import jax.numpy as jnp
 import flax.linen as nn
 import numpy as np
 import optax
+import flax
+import pickle
 from flax.linen.initializers import constant, orthogonal
 from typing import Callable, Sequence, NamedTuple, Dict
 from flax.training.train_state import TrainState
@@ -409,11 +411,14 @@ def make_train(config, env):
             
             rng = update_state[-1]
 
-            def callback(metrics):
-                to_log = {
-                    "env_step": metrics["update_steps"]
+            def callback(metrics, actor_state: TrainState, step):
+                env_step = (
+                    metrics["update_steps"]
                     * config["NUM_ENVS"]
-                    * config["NUM_STEPS"],
+                    * config["NUM_STEPS"]
+                )
+                to_log = {
+                    "env_step": env_step,
                     **metrics["loss"],
                 }
                 if metrics["returned_episode"].any():
@@ -428,10 +433,22 @@ def make_train(config, env):
                         metrics["returned_episode"][:, :, 0]
                     ].mean()
                 
+
+                if config["SAVE_DURING_TRAINING"]:
+                    save_dir = f"/app/Craftax/train/saved_states/{config['RUN_NAME']}"
+                    os.makedirs(save_dir, exist_ok=True)
+                    if step == 0:
+                        with open(f"{save_dir}/config.pkl", "wb+") as f:
+                            pickle.dump(config, f)
+                    if (step < 1250 and step % (config["SAVE_INTERVAL"]//10) == 0) or (step % config["SAVE_INTERVAL"])==0:
+                        state_bytes = flax.serialization.to_bytes(actor_state)
+                        with open(f"{save_dir}/actor_state_{env_step}", "wb+") as f:
+                            f.write(state_bytes)
+                
                 print(to_log)
                 wandb.log(to_log, step=metrics["update_steps"])
 
-            jax.experimental.io_callback(callback, None, metric)
+            jax.experimental.io_callback(callback, None, metric, train_state, update_steps)
             update_steps = update_steps + 1
             runner_state = (train_state, env_state, last_obs, last_done, hstate, rng)
             return (runner_state, update_steps), metric
@@ -484,8 +501,10 @@ if __name__ == "__main__":
         "PROJECT": "pqn-vdn-rnn_craftax-ma-3-agents",
         # "RUN_NAME": "ippo-3_agent-with_trade_achievement_len",
         # "RUN_NAME": "to_debug_ippo_metrics",
-        "RUN_NAME": "ippo-revive-chest_removed-recovery++-seed_1",
+        # "RUN_NAME": "ippo-revive-chest_removed-recovery++-seed_1",
         # "RUN_NAME": "ippo-revive-chest_removed-constant_recovery",
+        # "RUN_NAME": "ippo-chest_adjusted-dungeon_spawning-recovery++-teammate_rendering_action++",
+        "RUN_NAME": "IPPO - Base - Seed 1",
         "ENTITY": "b2alomar-university-of-waterloo",
 
         "ALG_NAME": "ippo-rnn",
@@ -516,14 +535,11 @@ if __name__ == "__main__":
         "LOG_ACHIEVEMENTS": False,
 
         # evaluation
-        "TEST_DURING_TRAINING": False,
-        "TEST_INTERVAL": 0.01,
-        "TEST_NUM_ENVS": 512,
-        "TEST_NUM_STEPS": 10000,
-        "EPS_TEST": 0.0,
+        "SAVE_DURING_TRAINING": True,
+        "SAVE_INTERVAL": 1250,
 
         "NUM_SEEDS": 1,
-        "SEED": 100,
+        "SEED": 1,
     }
     single_run(config)
 
