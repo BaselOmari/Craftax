@@ -16,7 +16,7 @@ from craftax_marl_basic.world_gen.world_gen import generate_world
 
 
 class CraftaxMARLPixelsEnv(MultiAgentEnv):
-    def __init__(self, num_agents: int = 3):
+    def __init__(self, num_agents: int = 1):
         self.num_agents = num_agents
         self.static_env_params = CraftaxMARLPixelsEnv.default_static_params()
 

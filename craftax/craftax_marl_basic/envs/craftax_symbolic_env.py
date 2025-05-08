@@ -16,7 +16,7 @@ from craftax_marl_basic.world_gen.world_gen import generate_world
 
 
 class CraftaxMARLSymbolicEnv(MultiAgentEnv):
-    def __init__(self, num_agents: int = 3):
+    def __init__(self, num_agents: int = 1):
         self.num_agents = num_agents
         self.static_env_params = CraftaxMARLSymbolicEnv.default_static_params()
 
@@ -101,15 +101,15 @@ class CraftaxMARLSymbolicEnv(MultiAgentEnv):
         )
 
     def get_inventory_obs_shape(self):
-        num_health = 1
         num_inventory = 16
         num_potions = 6
-        num_intrinsics = 8
+        num_intrinsics = 9
+        num_directions = 4
         num_armour = 4
         num_armour_enchantments = 4
         num_special_values = 3
         num_special_level_values = 4
-        return num_health + num_inventory + num_potions + num_intrinsics + num_armour + num_armour_enchantments + num_special_values + num_special_level_values
+        return num_inventory + num_potions + num_directions + num_intrinsics + num_armour + num_armour_enchantments + num_special_values + num_special_level_values
     
     def observation_shape(self) -> spaces.Box:
         obs_shape = (
