@@ -1,5 +1,5 @@
-from craftax_marl.util.game_logic_utils import *
-from craftax_marl.util.maths_utils import *
+from craftax_marl_basic.util.game_logic_utils import *
+from craftax_marl_basic.util.maths_utils import *
 import jax
 
 
@@ -61,14 +61,9 @@ def update_plants_with_eat(state, plant_position, is_eating_plant):
 
 
 def add_items_from_chest(rng, state, inventory, is_opening_chest):
-    is_miner = state.player_specialization == Specialization.MINER.value
-    is_warrior = state.player_specialization == Specialization.WARRIOR.value
-    # is_miner = jnp.array([True])
-    # is_warrior = jnp.array([True])
-
     # Wood (60%)
     rng, _rng = jax.random.split(rng)
-    is_looting_wood = jax.random.uniform(_rng) < 0.6 * is_opening_chest *is_miner
+    is_looting_wood = jax.random.uniform(_rng) < 0.6 * is_opening_chest
     rng, _rng = jax.random.split(rng)
     wood_loot_amount = (
         jax.random.randint(_rng, shape=(), minval=1, maxval=6) * is_looting_wood
@@ -76,7 +71,7 @@ def add_items_from_chest(rng, state, inventory, is_opening_chest):
 
     # Torch (60%)
     rng, _rng = jax.random.split(rng)
-    collect_prob = 0.6 * is_miner
+    collect_prob = 0.6
     is_looting_torch = jax.random.uniform(_rng) < collect_prob * is_opening_chest
     rng, _rng = jax.random.split(rng)
     torch_loot_amount = (
@@ -130,12 +125,12 @@ def add_items_from_chest(rng, state, inventory, is_opening_chest):
     rng, _rng = jax.random.split(rng)
     potion_loot_amount = jax.random.randint(_rng, shape=(), minval=1, maxval=3)
 
-    # Arrows (50%)
+    # Arrows (25%)
     rng, _rng = jax.random.split(rng)
-    is_looting_arrows = jax.random.uniform(_rng) < 0.5 * is_opening_chest * is_warrior
+    is_looting_arrows = jax.random.uniform(_rng) < 0.25 * is_opening_chest
     rng, _rng = jax.random.split(rng)
     arrows_loot_amount = (
-        jax.random.randint(_rng, shape=(), minval=4, maxval=9) * is_looting_arrows
+        jax.random.randint(_rng, shape=(), minval=1, maxval=5) * is_looting_arrows
     )
 
     # Tools (20%)
@@ -145,10 +140,7 @@ def add_items_from_chest(rng, state, inventory, is_opening_chest):
     tool_id = jax.random.randint(_rng, shape=(), minval=0, maxval=2)
 
     is_looting_pickaxe = jnp.logical_and(
-        jnp.logical_and(
-            is_miner,
-            jnp.logical_and(is_looting_tool, tool_id == 0)
-        ),
+        jnp.logical_and(is_looting_tool, tool_id == 0),
         is_opening_chest
     )
     rng, _rng = jax.random.split(rng)
@@ -167,36 +159,27 @@ def add_items_from_chest(rng, state, inventory, is_opening_chest):
         + (1 - is_looting_pickaxe) * inventory.pickaxe
     )
 
-    # # REMOVED TO FORCE SWORD MAKING THROUGH TRADING WITH MINER 
-    # is_looting_sword = jnp.logical_and(
-    #     jnp.logical_and(is_looting_tool, tool_id == 1), is_opening_chest
-    # )
-    # rng, _rng = jax.random.split(rng)
-    # sword_loot_level = (
-    #     jax.random.choice(
-    #         _rng,
-    #         (jnp.arange(3) + 2).astype(int),
-    #         shape=(),
-    #         p=jnp.array([0.5, 0.3, 0.2]),
-    #     )
-    #     * is_looting_sword
-    # )
-    # sword_loot_level = jnp.where( # only warriors can own swords above level 1 (wood)
-    #     is_warrior,
-    #     sword_loot_level,
-    #     1
-    # )
-    # sword_loot_level = jnp.maximum(sword_loot_level, inventory.sword)
-    # new_sword_level = (
-    #     is_looting_sword * sword_loot_level + (1 - is_looting_sword) * inventory.sword
-    # )
+    is_looting_sword = jnp.logical_and(
+        jnp.logical_and(is_looting_tool, tool_id == 1), is_opening_chest
+    )
+    rng, _rng = jax.random.split(rng)
+    sword_loot_level = (
+        jax.random.choice(
+            _rng,
+            (jnp.arange(3) + 2).astype(int),
+            shape=(),
+            p=jnp.array([0.5, 0.3, 0.2]),
+        )
+        * is_looting_sword
+    )
+    sword_loot_level = jnp.maximum(sword_loot_level, inventory.sword)
+    new_sword_level = (
+        is_looting_sword * sword_loot_level + (1 - is_looting_sword) * inventory.sword
+    )
 
     # Special chests
     is_looting_bow = jnp.logical_and(
-        jnp.logical_and(
-            is_opening_chest,
-            is_warrior,
-        ),
+        is_opening_chest,
         jnp.logical_and(
             state.player_level == 1,
             jnp.logical_not(state.chests_opened[state.player_level]),
@@ -215,16 +198,16 @@ def add_items_from_chest(rng, state, inventory, is_opening_chest):
 
     # Update inventory
     return inventory.replace(
-        wood=inventory.wood + wood_loot_amount*is_miner,
+        wood=inventory.wood + wood_loot_amount,
         torches=inventory.torches + torch_loot_amount,
-        coal=inventory.coal + coal_loot_amount*is_miner,
-        iron=inventory.iron + iron_loot_amount*is_miner,
-        diamond=inventory.diamond + diamond_loot_amount*is_miner,
-        sapphire=inventory.sapphire + sapphire_loot_amount*is_miner,
-        ruby=inventory.ruby + ruby_loot_amount*is_miner,
+        coal=inventory.coal + coal_loot_amount,
+        iron=inventory.iron + iron_loot_amount,
+        diamond=inventory.diamond + diamond_loot_amount,
+        sapphire=inventory.sapphire + sapphire_loot_amount,
+        ruby=inventory.ruby + ruby_loot_amount,
         arrows=inventory.arrows + arrows_loot_amount,
         pickaxe=new_pickaxe_level,
-        # sword=new_sword_level,
+        sword=new_sword_level,
         potions=inventory.potions.at[:, potion_loot_index].set(
             inventory.potions[:, potion_loot_index]
             + potion_loot_amount * is_looting_potion * is_opening_chest
@@ -235,8 +218,6 @@ def add_items_from_chest(rng, state, inventory, is_opening_chest):
 
 
 def do_action(rng, state, action, env_params, static_params):
-    is_forager = state.player_specialization == Specialization.FORAGER.value
-    # is_forager = jnp.array([True])
 
     block_position = state.player_position + DIRECTIONS[state.player_direction]
     equal_block_placement = (jnp.expand_dims(block_position, axis=1) == jnp.expand_dims(block_position, axis=0)).all(axis=2)
@@ -247,7 +228,7 @@ def do_action(rng, state, action, env_params, static_params):
     )
 
     state, did_attack_mob, did_kill_mob = attack_mob(
-        state, doing_action, block_position, get_player_damage_vector(state), is_forager
+        state, doing_action, block_position, get_player_damage_vector(state), True
     )
     
     # Interact with other players (Damage/Revive)
@@ -512,7 +493,7 @@ def do_action(rng, state, action, env_params, static_params):
         state.map[state.player_level, block_position[:, 0], block_position[:, 1]]
         == BlockType.GRASS.value
     )
-    sapling_prob = 0.2 * is_forager # only foragers can collect saplings
+    sapling_prob = 0.1
     is_mining_sapling = jnp.logical_and(
         jnp.logical_and(
             is_block_grass,
@@ -535,10 +516,6 @@ def do_action(rng, state, action, env_params, static_params):
     is_drinking_water = jnp.logical_and(
         is_block_water,
         doing_action,
-    )
-    is_drinking_water = jnp.logical_and(
-        is_drinking_water,
-        is_forager
     )
     new_drink = jnp.where(
         is_drinking_water,
@@ -697,18 +674,11 @@ def do_action(rng, state, action, env_params, static_params):
 def do_crafting(state, actions, static_params):
     is_at_crafting_table = is_near_block(state, BlockType.CRAFTING_TABLE.value, static_params)
     is_at_furnace = is_near_block(state, BlockType.FURNACE.value, static_params)
-    is_miner = state.player_specialization == Specialization.MINER.value
-    is_warrior = state.player_specialization == Specialization.WARRIOR.value
-    # is_miner = jnp.array([True])
-    # is_warrior = jnp.array([True])
 
     new_achievements = state.achievements
 
     # Wood pickaxe
-    can_craft_wood_pickaxe = jnp.logical_and(
-        state.inventory.wood >= 1,
-        is_miner
-    )
+    can_craft_wood_pickaxe = state.inventory.wood >= 1
 
     is_crafting_wood_pickaxe = jnp.logical_and(
         actions == Action.MAKE_WOOD_PICKAXE.value,
@@ -726,10 +696,7 @@ def do_crafting(state, actions, static_params):
 
     # Stone pickaxe
     can_craft_stone_pickaxe = jnp.logical_and(
-        is_miner,
-        jnp.logical_and(
-            new_inventory.wood >= 1, new_inventory.stone >= 1
-        )
+        new_inventory.wood >= 1, new_inventory.stone >= 1
     )
     is_crafting_stone_pickaxe = jnp.logical_and(
         actions == Action.MAKE_STONE_PICKAXE.value,
@@ -757,10 +724,6 @@ def do_crafting(state, actions, static_params):
             ),
         ),
     )
-    can_craft_iron_pickaxe = jnp.logical_and(
-        is_miner,
-        can_craft_iron_pickaxe,
-    )
     is_crafting_iron_pickaxe = jnp.logical_and(
         actions == Action.MAKE_IRON_PICKAXE.value,
         jnp.logical_and(
@@ -784,10 +747,6 @@ def do_crafting(state, actions, static_params):
     # Diamond pickaxe
     can_craft_diamond_pickaxe = jnp.logical_and(
         new_inventory.wood >= 1, new_inventory.diamond >= 3
-    )
-    can_craft_diamond_pickaxe = jnp.logical_and(
-        is_miner,
-        can_craft_diamond_pickaxe,
     )
     is_crafting_diamond_pickaxe = jnp.logical_and(
         actions == Action.MAKE_DIAMOND_PICKAXE.value,
@@ -824,10 +783,6 @@ def do_crafting(state, actions, static_params):
     can_craft_stone_sword = jnp.logical_and(
         new_inventory.stone >= 1, new_inventory.wood >= 1
     )
-    can_craft_stone_sword = jnp.logical_and(
-        can_craft_stone_sword, 
-        is_warrior
-    )
     is_crafting_stone_sword = jnp.logical_and(
         actions == Action.MAKE_STONE_SWORD.value,
         jnp.logical_and(
@@ -850,10 +805,6 @@ def do_crafting(state, actions, static_params):
             new_inventory.wood >= 1,
             jnp.logical_and(new_inventory.stone >= 1, new_inventory.coal >= 1),
         ),
-    )
-    can_craft_iron_sword = jnp.logical_and(
-        is_warrior,
-        can_craft_iron_sword,
     )
     is_crafting_iron_sword = jnp.logical_and(
         actions == Action.MAKE_IRON_SWORD.value,
@@ -878,10 +829,6 @@ def do_crafting(state, actions, static_params):
     # Diamond sword
     can_craft_diamond_sword = jnp.logical_and(
         new_inventory.diamond >= 2, new_inventory.wood >= 1
-    )
-    can_craft_diamond_sword = jnp.logical_and(
-        is_warrior,
-        can_craft_diamond_sword,
     )
     is_crafting_diamond_sword = jnp.logical_and(
         actions == Action.MAKE_DIAMOND_SWORD.value,
@@ -976,10 +923,6 @@ def do_crafting(state, actions, static_params):
 
     # Arrow
     can_craft_arrow = jnp.logical_and(new_inventory.stone >= 1, new_inventory.wood >= 1)
-    can_craft_arrow = jnp.logical_and(
-        can_craft_arrow,
-        is_warrior
-    )
     is_crafting_arrow = jnp.logical_and(
         actions == Action.MAKE_ARROW.value,
         jnp.logical_and(
@@ -995,10 +938,6 @@ def do_crafting(state, actions, static_params):
 
     # Torch
     can_craft_torch = jnp.logical_and(new_inventory.coal >= 1, new_inventory.wood >= 1)
-    can_craft_torch = jnp.logical_and(
-        can_craft_torch,
-        is_miner,
-    )
     is_crafting_torch = jnp.logical_and(
         actions == Action.MAKE_TORCH.value,
         jnp.logical_and(
@@ -1164,11 +1103,6 @@ def place_block(state, action, static_params):
     is_player_placing_stone = jnp.logical_and(
         stone_key_down,
         jnp.logical_and(is_valid_placement, has_stone),
-    )
-    is_player_placing_stone = jnp.logical_and(
-        is_player_placing_stone,
-        state.player_specialization == Specialization.MINER.value
-        # jnp.array([True])
     )
     is_any_player_placing_stone = jnp.logical_and(
         equal_block_placement,
@@ -1564,7 +1498,7 @@ def update_mobs(rng, state, params, env_params, static_params):
 
     rng, _rng = jax.random.split(rng)
     (rng, state), _ = jax.lax.scan(
-        _move_melee_mob, (rng, state), jnp.arange(static_params.max_melee_mobs * static_params.player_count)
+        _move_melee_mob, (rng, state), jnp.arange(static_params.max_melee_mobs)
     )
 
     # Move passive_mobs
@@ -1666,7 +1600,7 @@ def update_mobs(rng, state, params, env_params, static_params):
 
     rng, _rng = jax.random.split(rng)
     (rng, state), _ = jax.lax.scan(
-        _move_passive_mob, (rng, state), jnp.arange(static_params.max_passive_mobs * static_params.player_count)
+        _move_passive_mob, (rng, state), jnp.arange(static_params.max_passive_mobs)
     )
 
     # Move ranged_mobs
@@ -1767,7 +1701,7 @@ def update_mobs(rng, state, params, env_params, static_params):
         # Spawn projectile
         can_spawn_projectile = (
             state.mob_projectiles.mask[state.player_level].sum()
-            < static_params.max_mob_projectiles * static_params.player_count
+            < static_params.max_mob_projectiles
         )
         new_projectile_position = ranged_mobs.position[
             state.player_level, ranged_mob_index
@@ -1886,7 +1820,7 @@ def update_mobs(rng, state, params, env_params, static_params):
 
     rng, _rng = jax.random.split(rng)
     (rng, state), _ = jax.lax.scan(
-        _move_ranged_mob, (rng, state), jnp.arange(static_params.max_ranged_mobs * static_params.player_count)
+        _move_ranged_mob, (rng, state), jnp.arange(static_params.max_ranged_mobs)
     )
 
     # Move projectiles
@@ -1991,7 +1925,7 @@ def update_mobs(rng, state, params, env_params, static_params):
     (rng, state), _ = jax.lax.scan(
         _move_mob_projectile,
         (rng, state),
-        jnp.arange(static_params.max_mob_projectiles * static_params.player_count),
+        jnp.arange(static_params.max_mob_projectiles),
     )
 
     def _move_player_projectile(rng_and_state, projectile_index):
@@ -2412,7 +2346,7 @@ def spawn_mobs(state, rng, params, static_params):
         ),
     )
 
-    floor_mob_spawn_chance = FLOOR_MOB_SPAWN_CHANCE * static_params.player_count
+    floor_mob_spawn_chance = FLOOR_MOB_SPAWN_CHANCE
     monster_spawn_coeff = (
         1
         + (state.monsters_killed[state.player_level] < MONSTERS_KILLED_TO_CLEAR_LEVEL)
@@ -2428,7 +2362,7 @@ def spawn_mobs(state, rng, params, static_params):
     # Passive mobs
     can_spawn_passive_mob = (
         state.passive_mobs.mask[state.player_level].sum()
-        < static_params.max_passive_mobs * static_params.player_count
+        < static_params.max_passive_mobs
     )
 
     rng, _rng = jax.random.split(rng)
@@ -2936,14 +2870,6 @@ def shoot_projectile(state: EnvState, action: int, static_params: StaticEnvParam
 
 
 def cast_spell(state, action, static_params):
-    is_miner = state.player_specialization == Specialization.MINER.value
-    is_warrior = state.player_specialization == Specialization.WARRIOR.value
-    is_forager = state.player_specialization == Specialization.FORAGER.value
-    # is_miner = jnp.array([True])
-    # is_warrior = jnp.array([True])
-    # is_forager = jnp.array([True])
-
-    spell_mana_cost = jnp.array([2,6]) # fireball costs 2, healing costs 5
 
     def _cast_player_spell(player_info, player_index):
         player_projectiles, player_projectile_directions, player_projectile_owners, player_health = player_info
@@ -2953,17 +2879,13 @@ def cast_spell(state, action, static_params):
             state.learned_spells[player_index]
         )
 
-        # Warriors/Miners -> Cast Fireball
         is_casting_fireball = jnp.logical_and(
-            is_casting_spell, state.player_mana[player_index] >= spell_mana_cost[0]
+            is_casting_spell, state.player_mana[player_index] >= 2
         )
         is_casting_fireball = jnp.logical_and(
             is_casting_fireball,
-            jnp.logical_and(
-                jnp.logical_or(is_miner[player_index], is_warrior[player_index]),
-                player_projectiles.mask[state.player_level].sum()
-                < (static_params.max_player_projectiles * static_params.player_count),
-            )
+            player_projectiles.mask[state.player_level].sum()
+            < (static_params.max_player_projectiles * static_params.player_count),
         )
         new_player_projectiles, new_player_projectile_directions, new_player_projectile_owners = spawn_projectile(
             state,
@@ -2978,28 +2900,14 @@ def cast_spell(state, action, static_params):
             ProjectileType.FIREBALL.value,
         )
 
-
-        # Foragers -> Healing
-        is_casting_healing = jnp.logical_and(is_casting_spell, is_forager[player_index])
-        is_casting_healing = jnp.logical_and(
-            is_casting_healing, state.player_mana[player_index] >= spell_mana_cost[1]
-        )
-        health_increase = 2
-        new_player_health = jnp.minimum(
-            player_health + state.player_alive * (health_increase * is_casting_healing), 
-            get_max_health(state)
-        )
-
-        spell_cast = jnp.array([is_casting_fireball, is_casting_healing])
-
-        return (new_player_projectiles, new_player_projectile_directions, new_player_projectile_owners, new_player_health), spell_cast
+        return (new_player_projectiles, new_player_projectile_directions, new_player_projectile_owners, new_player_health), is_casting_fireball
     
     (
         new_player_projectiles, 
         new_player_projectile_directions, 
         new_player_projectile_owners,
         new_player_health
-    ), spell_cast = jax.lax.scan(
+    ), did_cast_spell = jax.lax.scan(
         _cast_player_spell, 
         (
             state.player_projectiles, 
@@ -3009,7 +2917,6 @@ def cast_spell(state, action, static_params):
         ), 
         jnp.arange(static_params.player_count)
     ) 
-    did_cast_spell = spell_cast.any(axis=-1)
     new_achievements = state.achievements.at[:, Achievement.CAST_SPELL.value].set(
         jnp.logical_or(state.achievements[:, Achievement.CAST_SPELL.value], did_cast_spell)
     )
@@ -3019,7 +2926,7 @@ def cast_spell(state, action, static_params):
         player_projectile_directions=new_player_projectile_directions,
         player_projectile_owners=new_player_projectile_owners,
         player_health=new_player_health,
-        player_mana=state.player_mana - jnp.dot(spell_cast, spell_mana_cost),
+        player_mana=state.player_mana - did_cast_spell*2,
         achievements=new_achievements,
     )
 
@@ -3167,19 +3074,12 @@ def enchant(rng, state: EnvState, action, static_params: StaticEnvParams):
         state.player_mana >= 9,
         jnp.logical_and(target_block_is_enchantment_table, num_gems >= 1),
     )
-    could_enchant_warrior = jnp.logical_and(
-        state.player_specialization == Specialization.WARRIOR.value,
-        # jnp.array([True]),
-        could_enchant
-    )
-
     is_enchanting_bow = jnp.logical_and(
-        could_enchant_warrior,
-        jnp.logical_and(action == Action.ENCHANT_BOW.value, state.inventory.bow > 0),
+        could_enchant,
+        jnp.logical_and(action == Action.ENCHANT_BOW.value, state.inventory.bow > 0)
     )
-
     is_enchanting_sword = jnp.logical_and(
-        could_enchant_warrior,
+        could_enchant,
         jnp.logical_and(
             action == Action.ENCHANT_SWORD.value, state.inventory.sword > 0
         ),
@@ -3396,138 +3296,6 @@ def calculate_inventory_achievements(state):
     return state.replace(achievements=achievements)
 
 
-def trade_materials(state, action, static_params):
-    new_achievements = state.achievements
-    new_trade_count = state.trade_count
-    new_food_trade_count = state.food_trade_count
-    new_drink_trade_count = state.drink_trade_count
-
-    player_trading_to = action - Action.GIVE.value
-    player_trading_to += 1 * (player_trading_to >= jnp.arange(static_params.player_count))
-    is_giving = jnp.logical_and(
-        action >= Action.GIVE.value, 
-        action < (Action.GIVE.value + static_params.player_count - 1)
-    )
-    other_player_is_requesting = jnp.logical_and(
-        state.request_duration[player_trading_to] > 0,
-        state.player_alive[player_trading_to]
-    )
-
-    def _new_material_value(material_type, current_material_stock, material_max_value, old_trade_count):
-        other_player_is_requesting_material = jnp.logical_and(
-            other_player_is_requesting,
-            state.request_type[player_trading_to] == material_type
-        )
-        is_giving_material = jnp.logical_and(
-            jnp.logical_and( # Checks that other player is requesting and can take materials
-                other_player_is_requesting_material,
-                current_material_stock[player_trading_to] < material_max_value
-            ),
-            jnp.logical_and( # Checks that player has materials and is giving
-                is_giving,
-                current_material_stock > 0
-            )
-        )
-        new_material = current_material_stock - 1 * is_giving_material
-        new_material = new_material.at[player_trading_to].add(is_giving_material)
-        return new_material, old_trade_count + is_giving_material.sum()
-    
-    # Food
-    food_trade_count = 0
-    new_food, food_trade_count = _new_material_value(
-        Action.REQUEST_FOOD.value, state.player_food, get_max_food(state), food_trade_count
-    )
-    new_hunger = jnp.where(new_food>state.player_food, 0.0, state.player_hunger)
-    new_achievements = new_achievements.at[:, Achievement.COLLECT_FOOD.value].set(
-        jnp.logical_or(
-            new_achievements[:, Achievement.COLLECT_FOOD.value], new_food>state.player_food
-        )
-    )
-    new_food_trade_count += food_trade_count
-    new_trade_count += food_trade_count
-    
-    # Drink
-    drink_trade_count = 0
-    new_drink, drink_trade_count = _new_material_value(
-        Action.REQUEST_DRINK.value, state.player_drink, get_max_drink(state), drink_trade_count
-    )
-    new_thirst = jnp.where(new_drink>state.player_drink, 0.0, state.player_thirst)
-    new_achievements = new_achievements.at[:, Achievement.COLLECT_DRINK.value].set(
-        jnp.logical_or(
-            new_achievements[:, Achievement.COLLECT_DRINK.value], new_drink>state.player_drink
-        )
-    )
-    new_drink_trade_count += drink_trade_count
-    new_trade_count += drink_trade_count
-
-    # Inventory Materials
-    new_wood, new_trade_count = _new_material_value(
-        Action.REQUEST_WOOD.value, state.inventory.wood, 99, new_trade_count
-    )
-    new_stone, new_trade_count = _new_material_value(
-        Action.REQUEST_STONE.value, state.inventory.stone, 99, new_trade_count
-    )
-    new_iron, new_trade_count = _new_material_value(
-        Action.REQUEST_IRON.value, state.inventory.iron, 99, new_trade_count
-    )
-    new_coal, new_trade_count = _new_material_value(
-        Action.REQUEST_COAL.value, state.inventory.coal, 99, new_trade_count
-    )
-    new_diamond, new_trade_count = _new_material_value(
-        Action.REQUEST_DIAMOND.value, state.inventory.diamond, 99, new_trade_count
-    )
-    new_ruby, new_trade_count = _new_material_value(
-        Action.REQUEST_RUBY.value, state.inventory.ruby, 99, new_trade_count
-    )
-    new_sapphire, new_trade_count = _new_material_value(
-        Action.REQUEST_SAPPHIRE.value, state.inventory.sapphire, 99, new_trade_count
-    )
-
-    # Update State
-    state = state.replace(
-        player_food=new_food,
-        player_drink=new_drink,
-        player_hunger=new_hunger,
-        player_thirst=new_thirst,
-        inventory=state.inventory.replace(
-            wood=new_wood,
-            stone=new_stone,
-            iron=new_iron,
-            coal=new_coal,
-            diamond=new_diamond,
-            ruby=new_ruby,
-            sapphire=new_sapphire,
-        ),
-        achievements=new_achievements,
-        trade_count=new_trade_count,
-        food_trade_count=new_food_trade_count,
-        drink_trade_count=new_drink_trade_count,
-    )
-    return state
-
-
-def make_request(state, action):
-    # Decrease Request Duration
-    state = state.replace(
-        request_duration=jnp.maximum(0, state.request_duration - 1)
-    )
-
-    # Initialize New Request
-    is_making_request = jnp.logical_and( # Hacky
-        action >= Action.REQUEST_FOOD.value, action <= Action.REQUEST_DIAMOND.value
-    )
-    new_request_type = jnp.where(
-        is_making_request,
-        action,
-        state.request_type
-    )
-    state = state.replace(
-        request_duration=jnp.maximum(state.request_duration, is_making_request * REQUEST_MAX_DURATION),
-        request_type=new_request_type
-    )
-    return state
-
-
 def level_up_attributes(state: EnvState, action: jnp.array, params: EnvParams) -> EnvState:
     can_level_up = state.player_xp >= 1
 
@@ -3617,12 +3385,6 @@ def craftax_step(
     # Attributes
     state = level_up_attributes(state, actions, params)
 
-    # Trade
-    state = trade_materials(state, actions, static_params)
-
-    # Request Materials
-    state = make_request(state, actions)
-
     # Movement
     state = move_player(state, actions, params, static_params)
 
@@ -3682,176 +3444,3 @@ def craftax_step(
     )
 
     return state, reward
-
-
-def smart_avail_actions(state: EnvState, static_params: StaticEnvParams, params: EnvParams):
-    pc = static_params.player_count
-
-    def broadcast(val):
-        return jnp.full((pc,), val)
-
-    # Actions 0–5: basic controls
-    noop = broadcast(1)
-    left = broadcast(1)
-    right = broadcast(1)
-    up = broadcast(1)
-    down = broadcast(1)
-    do = broadcast(1)
-
-    # 6–10: player actions
-    sleep = state.player_energy < get_max_energy(state)
-    place_stone = state.inventory.stone > 0
-    place_table = state.inventory.wood >= 2
-    place_furnace = state.inventory.stone > 0
-    place_plant = state.inventory.sapling > 0
-
-    # 11–13: pickaxes
-    make_wood_pickaxe = jnp.logical_and(
-        state.inventory.wood >= 1,
-        jnp.logical_and(is_near_block(state, BlockType.CRAFTING_TABLE.value, static_params),
-                        state.inventory.pickaxe < 1)
-    )
-    make_stone_pickaxe = jnp.logical_and(
-        jnp.logical_and(state.inventory.wood >= 1, state.inventory.stone >= 1),
-        jnp.logical_and(is_near_block(state, BlockType.CRAFTING_TABLE.value, static_params),
-                        state.inventory.pickaxe < 2)
-    )
-    make_iron_pickaxe = jnp.logical_and(
-        jnp.logical_and(jnp.logical_and(state.inventory.wood >= 1, state.inventory.stone >= 1),
-                        jnp.logical_and(state.inventory.iron >= 1, state.inventory.coal >= 1)),
-        jnp.logical_and(jnp.logical_and(is_near_block(state, BlockType.FURNACE.value, static_params),
-                                        is_near_block(state, BlockType.CRAFTING_TABLE.value, static_params)),
-                        state.inventory.pickaxe < 3)
-    )
-
-    # 14–16: swords
-    make_wood_sword = jnp.logical_and(
-        state.inventory.wood >= 1,
-        jnp.logical_and(is_near_block(state, BlockType.CRAFTING_TABLE.value, static_params),
-                        state.inventory.sword < 1)
-    )
-    make_stone_sword = jnp.logical_and(
-        jnp.logical_and(state.inventory.wood >= 1, state.inventory.stone >= 1),
-        jnp.logical_and(is_near_block(state, BlockType.CRAFTING_TABLE.value, static_params),
-                        state.inventory.sword < 2)
-    )
-    make_iron_sword = jnp.logical_and(
-        jnp.logical_and(state.inventory.wood >= 1, state.inventory.stone >= 1),
-        jnp.logical_and(jnp.logical_and(is_near_block(state, BlockType.FURNACE.value, static_params),
-                                        is_near_block(state, BlockType.CRAFTING_TABLE.value, static_params)),
-                        state.inventory.sword < 3)
-    )
-
-    # 17–19: health/movement
-    rest = state.player_health < get_max_health(state)
-    descend = jnp.logical_and(
-        state.item_map[
-            state.player_level, state.player_position[:, 0], state.player_position[:, 1]
-        ] == ItemType.LADDER_DOWN.value,
-        state.monsters_killed[state.player_level] >= MONSTERS_KILLED_TO_CLEAR_LEVEL
-    )
-    ascend = state.item_map[
-        state.player_level, state.player_position[:, 0], state.player_position[:, 1]
-    ] == ItemType.LADDER_UP.value
-
-    # 20–21: diamond tools
-    make_diamond_pickaxe = jnp.logical_and(
-        jnp.logical_and(state.inventory.wood >= 1, state.inventory.diamond >= 3),
-        jnp.logical_and(is_near_block(state, BlockType.CRAFTING_TABLE.value, static_params),
-                        state.inventory.pickaxe < 4)
-    )
-    make_diamond_sword = jnp.logical_and(
-        jnp.logical_and(state.inventory.diamond >= 2, state.inventory.wood >= 1),
-        jnp.logical_and(is_near_block(state, BlockType.CRAFTING_TABLE.value, static_params),
-                        state.inventory.sword < 4)
-    )
-
-    # 22–23: armour
-    make_iron_armour = jnp.logical_and(
-        jnp.logical_and((state.inventory.armour < 1).sum(axis=1) > 0,
-                        jnp.logical_and(state.inventory.iron >= 3, state.inventory.coal >= 3)),
-        jnp.logical_and(is_near_block(state, BlockType.CRAFTING_TABLE.value, static_params),
-                        is_near_block(state, BlockType.FURNACE.value, static_params))
-    )
-    make_diamond_armour = jnp.logical_and(
-        jnp.logical_and((state.inventory.armour < 2).sum(axis=1) > 0, state.inventory.diamond >= 3),
-        is_near_block(state, BlockType.CRAFTING_TABLE.value, static_params)
-    )
-
-    # 24–25: ranged
-    shoot_arrow = jnp.logical_and(state.inventory.bow >= 1, state.inventory.arrows >= 1)
-    make_arrow = jnp.logical_and(
-        jnp.logical_and(state.inventory.stone >= 1, state.inventory.wood >= 1),
-        is_near_block(state, BlockType.CRAFTING_TABLE.value, static_params)
-    )
-
-    place_torch = state.inventory.torches > 0
-
-    # 26: spell
-    cast_spell = state.learned_spells
-
-    # 27–34: drink potions — assuming separate inventory flags exist
-    drink_red     = state.inventory.potions[:, 0] > 0
-    drink_green   = state.inventory.potions[:, 1] > 0
-    drink_blue    = state.inventory.potions[:, 2] > 0
-    drink_pink    = state.inventory.potions[:, 3] > 0
-    drink_cyan    = state.inventory.potions[:, 4] > 0
-    drink_yellow  = state.inventory.potions[:, 5] > 0
-
-    # 35: reading
-    read_book = state.inventory.books > 0
-
-    # 36–38: enchanting and crafting
-    enchant_sword = jnp.logical_and(state.player_mana >= 9, state.inventory.sword > 0)
-    enchant_armour = jnp.logical_and(state.player_mana >= 9, state.inventory.armour.sum(axis=1) > 0)
-    make_torch = jnp.logical_and(
-        jnp.logical_and(state.inventory.coal >= 1, state.inventory.wood >= 1),
-        is_near_block(state, BlockType.CRAFTING_TABLE.value, static_params)
-    )
-
-    # 39–41: leveling
-    level_up_dexterity = jnp.logical_and(state.player_xp >= 1, state.player_dexterity < params.max_attribute)
-    level_up_strength = jnp.logical_and(state.player_xp >= 1, state.player_strength < params.max_attribute)
-    level_up_intelligence = jnp.logical_and(state.player_xp >= 1, state.player_intelligence < params.max_attribute)
-
-    # 42: enchant bow
-    enchant_bow = jnp.logical_and(state.player_mana >= 9, state.inventory.bow > 0)
-
-    # 43–51: requests
-    request_food = broadcast(1)
-    request_drink = broadcast(1)
-    request_wood = broadcast(1)
-    request_stone = broadcast(1)
-    request_iron = broadcast(1)
-    request_coal = broadcast(1)
-    request_diamond = broadcast(1)
-    request_ruby = broadcast(1)
-    request_sapphire = broadcast(1)
-
-    # 52: GIVE (matrix, per player)
-    give = jnp.ones((pc, pc), dtype=jnp.int32)
-
-    # Final stack
-    actions = jnp.stack([
-        noop, left, right, up, down, do,
-        sleep, place_stone, place_table, place_furnace, place_plant,
-        make_wood_pickaxe, make_stone_pickaxe, make_iron_pickaxe,
-        make_wood_sword, make_stone_sword, make_iron_sword,
-        rest, descend, ascend,
-        make_diamond_pickaxe, make_diamond_sword,
-        make_iron_armour, make_diamond_armour,
-        shoot_arrow, make_arrow,
-        cast_spell, place_torch,
-        drink_red, drink_green, drink_blue, drink_pink, drink_cyan, drink_yellow,
-        read_book,
-        enchant_sword, enchant_armour, make_torch,
-        level_up_dexterity, level_up_strength, level_up_intelligence,
-        enchant_bow,
-        request_food, request_drink, request_wood, request_stone, request_iron,
-        request_coal, request_diamond, request_ruby, request_sapphire
-    ], axis=1)  # shape (pc, 52)
-
-    # Now add the "give" part
-    full_actions = jnp.concatenate([actions, give], axis=1)  # shape (pc, 52 + pc)
-
-    return full_actions

@@ -78,11 +78,6 @@ class EnvState:
     player_dexterity: jnp.ndarray
     player_strength: jnp.ndarray
     player_intelligence: jnp.ndarray
-    player_specialization: jnp.ndarray
-
-    # Request Info
-    request_duration: jnp.ndarray
-    request_type: jnp.ndarray
 
     inventory: Inventory
 
@@ -120,9 +115,6 @@ class EnvState:
     timestep: int
 
     # cooperation metrics
-    trade_count: int
-    food_trade_count: int
-    drink_trade_count: int
     revives: int
     ff_damage_dealt: float
 
@@ -143,7 +135,6 @@ class EnvParams:
 
     mob_despawn_distance: int = 14
     max_attribute: int = 5
-
 
     fractal_noise_angles: tuple[int, int, int, int] = (None, None, None, None)
 

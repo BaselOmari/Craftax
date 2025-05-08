@@ -2,7 +2,7 @@ import jax
 from flax import struct
 import jax.numpy as jnp
 
-from craftax_marl.constants import BlockType
+from craftax_marl_basic.constants import BlockType
 
 
 @struct.dataclass

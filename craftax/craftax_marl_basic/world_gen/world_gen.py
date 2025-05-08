@@ -1,13 +1,13 @@
 import jax
 import jax.scipy as jsp
 
-from craftax_marl.constants import *
-from craftax_marl.game_logic import calculate_light_level
-from craftax_marl.util.maths_utils import get_all_players_distance_map
-from craftax_marl.craftax_state import EnvState, Inventory, Mobs
-from craftax_marl.util.game_logic_utils import get_ladder_positions
-from craftax_marl.util.noise import generate_fractal_noise_2d
-from craftax_marl.world_gen.world_gen_configs import (
+from craftax_marl_basic.constants import *
+from craftax_marl_basic.game_logic import calculate_light_level
+from craftax_marl_basic.util.maths_utils import get_all_players_distance_map
+from craftax_marl_basic.craftax_state import EnvState, Inventory, Mobs
+from craftax_marl_basic.util.game_logic_utils import get_ladder_positions
+from craftax_marl_basic.util.noise import generate_fractal_noise_2d
+from craftax_marl_basic.world_gen.world_gen_configs import (
     ALL_DUNGEON_CONFIGS,
     ALL_SMOOTHGEN_CONFIGS,
 )
@@ -502,10 +502,6 @@ def generate_world(rng, params, static_params):
         jnp.arange(0, static_params.player_count)
     )
 
-    # Fix player specializations
-    player_specialization_order = jnp.array([Specialization.WARRIOR.value, Specialization.FORAGER.value, Specialization.MINER.value])
-    player_specializations = player_specialization_order[jnp.arange(static_params.player_count) % 3]
-
     # Generate smoothgens (overworld, caves, elemental levels, boss level)
     rngs = jax.random.split(rng, 7)
     rng, _rng = rngs[0], rngs[1:]
@@ -546,13 +542,13 @@ def generate_world(rng, params, static_params):
         )
 
     melee_mobs = generate_empty_mobs(
-        static_params.max_melee_mobs * static_params.player_count
+        static_params.max_melee_mobs
     )
     ranged_mobs = generate_empty_mobs(
-        static_params.max_ranged_mobs * static_params.player_count
+        static_params.max_ranged_mobs
     )
     passive_mobs = generate_empty_mobs(
-        static_params.max_passive_mobs * static_params.player_count
+        static_params.max_passive_mobs
     )
 
     # Projectiles
@@ -570,7 +566,7 @@ def generate_world(rng, params, static_params):
         return projectiles, projectile_directions, projectile_owners
 
     mob_projectiles, mob_projectile_directions, mob_projectile_owners = _create_projectiles(
-        static_params.max_mob_projectiles * static_params.player_count
+        static_params.max_mob_projectiles
     )
     player_projectiles, player_projectile_directions, player_projectile_owners = _create_projectiles(
         static_params.max_player_projectiles * static_params.player_count
@@ -633,9 +629,6 @@ def generate_world(rng, params, static_params):
         player_dexterity=jnp.full((static_params.player_count,), 1, dtype=jnp.int32),
         player_strength=jnp.full((static_params.player_count,), 1, dtype=jnp.int32),
         player_intelligence=jnp.full((static_params.player_count,), 1, dtype=jnp.int32),
-        player_specialization=player_specializations,
-        request_duration=jnp.full((static_params.player_count,), 0, dtype=jnp.int32),
-        request_type=jnp.full((static_params.player_count,), 0, dtype=jnp.int32),
         inventory=inventory,
         sword_enchantment=jnp.full((static_params.player_count,), 0, dtype=jnp.int32),
         bow_enchantment=jnp.full((static_params.player_count,), 0, dtype=jnp.int32),

@@ -5,7 +5,7 @@ import jax.numpy as jnp
 import imageio.v3 as iio
 import numpy as np
 from PIL import Image
-from craftax_marl.util.maths_utils import get_distance_map
+from craftax_marl_basic.util.maths_utils import get_distance_map
 from environment_base.util import load_compressed_pickle, save_compressed_pickle
 from flax import struct
 from seaborn import husl_palette
@@ -122,79 +122,6 @@ class Action(Enum):
     LEVEL_UP_STRENGTH = 40  # -
     LEVEL_UP_INTELLIGENCE = 41  # =
     ENCHANT_BOW = 42  # ;
-    REQUEST_FOOD = 43  # Backspace
-    REQUEST_DRINK = 44  # Back slash
-    REQUEST_WOOD = 45  # Return
-    REQUEST_STONE = 46  # Right Shift
-    REQUEST_IRON = 47  # Up Arrow
-    REQUEST_COAL = 48  # Down Arrow
-    REQUEST_DIAMOND = 49  # Left Arrow
-    REQUEST_RUBY = 50  # Left Arrow
-    REQUEST_SAPPHIRE = 51  # Left Arrow
-    GIVE = 52  # Right Arrow
-    # Player can give to all other players. (Action - GIVE) represents which player to give to.
-
-def avail_actions_fn(num_agents):
-    base_actions = [
-        1,  # 0: NOOP ✅
-        1,  # 1: LEFT ✅
-        1,  # 2: RIGHT ✅
-        1,  # 3: UP ✅
-        1,  # 4: DOWN ✅
-        1,  # 5: DO ✅
-        1,  # 6: SLEEP ✅
-        1,  # 7: PLACE_STONE ✅
-        1,  # 8: PLACE_TABLE ✅
-        1,  # 9: PLACE_FURNACE ✅
-        1,  # 10: PLACE_PLANT ✅
-        1,  # 11: MAKE_WOOD_PICKAXE ✅
-        1,  # 12: MAKE_STONE_PICKAXE ✅
-        0,  # 13: MAKE_IRON_PICKAXE ❌
-        1,  # 14: MAKE_WOOD_SWORD ✅
-        1,  # 15: MAKE_STONE_SWORD ✅
-        0,  # 16: MAKE_IRON_SWORD ❌
-        1,  # 17: REST ✅
-        1,  # 18: DESCEND ✅
-        1,  # 19: ASCEND ✅
-        0,  # 20: MAKE_DIAMOND_PICKAXE ❌
-        0,  # 21: MAKE_DIAMOND_SWORD ❌
-        0,  # 22: MAKE_IRON_ARMOUR ❌
-        0,  # 23: MAKE_DIAMOND_ARMOUR ❌
-        1,  # 24: SHOOT_ARROW ✅
-        1,  # 25: MAKE_ARROW ✅
-        0,  # 26: CAST_SPELL ❌
-        # 27 is missing from enum
-        1,  # 28: PLACE_TORCH ✅
-        0,  # 29: DRINK_POTION_RED ❌
-        0,  # 30: DRINK_POTION_GREEN ❌
-        0,  # 31: DRINK_POTION_BLUE ❌
-        0,  # 32: DRINK_POTION_PINK ❌
-        0,  # 33: DRINK_POTION_CYAN ❌
-        0,  # 34: DRINK_POTION_YELLOW ❌
-        0,  # 35: READ_BOOK ❌
-        0,  # 36: ENCHANT_SWORD ❌
-        0,  # 37: ENCHANT_ARMOUR ❌
-        1,  # 38: MAKE_TORCH ✅
-        0,  # 39: LEVEL_UP_DEXTERITY ❌
-        0,  # 40: LEVEL_UP_STRENGTH ❌
-        0,  # 41: LEVEL_UP_INTELLIGENCE ❌
-        0,  # 42: ENCHANT_BOW ❌
-        0,  # 43: REQUEST_FOOD ❌
-        0,  # 44: REQUEST_DRINK ❌
-        0,  # 45: REQUEST_WOOD ❌
-        0,  # 46: REQUEST_STONE ❌
-        0,  # 47: REQUEST_IRON ❌
-        0,  # 48: REQUEST_COAL ❌
-        0,  # 49: REQUEST_DIAMOND ❌
-        0,  # 50: REQUEST_RUBY ❌
-        0,  # 51: REQUEST_SAPPHIRE ❌
-        0,  # 52: GIVE ❌
-    ]
-
-    # Add GIVE_TO_PLAYER_X for other agents (all disabled)
-    extra_give_actions = [0] * (num_agents - 1)
-
-    return jnp.array(base_actions + extra_give_actions, dtype=int)
 
 class MobType(Enum):
     PASSIVE = 0
@@ -212,14 +139,6 @@ class ProjectileType(Enum):
     SLIMEBALL = 5
     FIREBALL2 = 6
     ICEBALL2 = 7
-
-
-class Specialization(Enum):
-    UNASSIGNED = 0
-    FORAGER = 1
-    WARRIOR = 2
-    MINER = 3
-
 
 # FLOOR MECHANICS
 

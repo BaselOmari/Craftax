@@ -1,7 +1,7 @@
 import chex
 
-from craftax_marl.constants import *
-from craftax_marl.craftax_state import *
+from craftax_marl_basic.constants import *
+from craftax_marl_basic.craftax_state import *
 
 # For utility functions - functions called more than once in meaningfully different parts of the codebase
 
@@ -297,9 +297,7 @@ def get_player_damage_vector(state):
         [1, 2, 3, 5, 8],
         dtype=jnp.int32,
     )
-    physical_damage = (
-        physical_damages[state.inventory.sword] * (1 + (state.player_specialization == Specialization.WARRIOR.value))
-    ) # warrior has 2x base damage
+    physical_damage = physical_damages[state.inventory.sword]
     fire_damage = physical_damage * (state.sword_enchantment == 1) * 0.5
     ice_damage = physical_damage * (state.sword_enchantment == 2) * 0.5
 
@@ -444,11 +442,11 @@ def get_max_health(state):
 
 
 def get_max_food(state):
-    return (7 + 2 * state.player_dexterity) * (1 + (state.player_specialization == Specialization.FORAGER.value) * 2)
+    return 7 + 2 * state.player_dexterity
 
 
 def get_max_drink(state):
-    return (7 + 2 * state.player_dexterity) * (1 + (state.player_specialization == Specialization.FORAGER.value) * 2)
+    return 7 + 2 * state.player_dexterity
 
 
 def get_max_energy(state):

@@ -1,9 +1,9 @@
 import jax
 from functools import partial
 
-from craftax_marl.constants import *
-from craftax_marl.craftax_state import EnvState, StaticEnvParams
-from craftax_marl.util.game_logic_utils import is_boss_vulnerable
+from craftax_marl_basic.constants import *
+from craftax_marl_basic.craftax_state import EnvState, StaticEnvParams
+from craftax_marl_basic.util.game_logic_utils import is_boss_vulnerable
 
 
 def render_craftax_symbolic(state: EnvState, static_params: StaticEnvParams):
@@ -104,19 +104,12 @@ def render_craftax_symbolic(state: EnvState, static_params: StaticEnvParams):
         ),
         jnp.arange(state.player_projectiles.mask.shape[1]),
     )
-
-    def reorder_teammate_info(teammate_info, player_index):
-        i1 = (jnp.arange(static_params.player_count) == 0) * player_index
-        i2 = jnp.logical_and(jnp.arange(static_params.player_count) > 0, jnp.arange(static_params.player_count) <= (player_index)) * (jnp.arange(static_params.player_count) - 1)
-        i3 = (jnp.arange(static_params.player_count) > player_index) * (jnp.arange(static_params.player_count))
-        indices = (i1 + i2 + i3)
-        return teammate_info[indices].flatten()
     
-    # Teammate map (One-hot encoding of teammate + bit for dead/alive)
+    # Teammate map (bit to indicate teammate position + bit for dead/alive)
     def _add_teammate(player_index):
         """Creates teammate map for each player"""
         teammate_map = jnp.zeros(
-            (*OBS_DIM, static_params.player_count + 1), dtype=jnp.int32
+            (*OBS_DIM, 2), dtype=jnp.int32
         )
         local_position = (
             -1 * state.player_position[player_index]
@@ -128,39 +121,16 @@ def render_craftax_symbolic(state: EnvState, static_params: StaticEnvParams):
         ).all(axis=-1)
 
         # Add teammate encoding
-        teammate_map = teammate_map.at[
-            local_position[:, 0], local_position[:, 1],
-            (
-                (jnp.arange(static_params.player_count) < player_index) * (jnp.arange(static_params.player_count) + 1) +
-                (jnp.arange(static_params.player_count) == player_index) * 0 +
-                (jnp.arange(static_params.player_count) > player_index) * (jnp.arange(static_params.player_count))
-            )
-        ].max(on_screen)
-
-        # Add dead/alive bit
-        teammate_map = teammate_map.at[
-            local_position[:, 0], local_position[:, 1], -1
-        ].set(
+        teammate_map = teammate_map.at[local_position[:, 0], local_position[:, 1], 0].max(on_screen)
+        teammate_map = teammate_map.at[local_position[:, 0], local_position[:, 1], 1].set(
             jnp.logical_and(
                 on_screen,
                 state.player_alive
             )
         )
+        return teammate_map
 
-        """
-        Find direction to teammates
-        """
-        direction_index_2d = jnp.where(
-            local_position < 0, 1,
-            jnp.where(local_position >= obs_dim_array, 2, 0)
-        )
-        direction_index = direction_index_2d[:, 0]*3 + direction_index_2d[:, 1] - 1
-        teammate_directions = jax.nn.one_hot(direction_index, num_classes=8)
-        teammate_directions = reorder_teammate_info(teammate_directions, player_index)
-        return teammate_map, teammate_directions
-    teammate_map, teammate_directions = jax.vmap(_add_teammate, in_axes=0)(jnp.arange(static_params.player_count))
-        # return teammate_map 
-    # teammate_map  = jax.vmap(_add_teammate, in_axes=0)(jnp.arange(static_params.player_count))
+    teammate_map  = jax.vmap(_add_teammate, in_axes=0)(jnp.arange(static_params.player_count))
 
     # Concat all maps
     all_map = jnp.concatenate(
@@ -216,7 +186,7 @@ def render_craftax_symbolic(state: EnvState, static_params: StaticEnvParams):
 
     intrinsics = jnp.stack(
         (
-            # state.player_health / 10.0, # -- Removed and placed as part of the teammate dashboard
+            state.player_health / 10.0,
             state.player_food / 10.0,
             state.player_drink / 10.0,
             state.player_energy / 10.0,
@@ -249,36 +219,9 @@ def render_craftax_symbolic(state: EnvState, static_params: StaticEnvParams):
         ]
     )
 
-    """
-    Teammate Dashboard
-        Includes:
-            - Player Health
-            - Player Dead or Alive
-            - Specialization
-            - Requested Material
-    Teammate Dashboard appears the same for all players
-    """
-    players_health = state.player_health / 10.0
-    players_alive = state.player_alive
-    players_specialization = jax.nn.one_hot(state.player_specialization - Specialization.FORAGER.value, num_classes=3)
-    requested_material = (
-        jax.nn.one_hot(
-            state.request_type - Action.REQUEST_FOOD.value, 
-            num_classes=(Action.REQUEST_SAPPHIRE.value - Action.REQUEST_FOOD.value + 1)
-        )
-        * (state.request_duration > 0)[:, None]
-    )
-    player_data = jnp.concatenate(
-        (players_health[:, None], players_alive[:, None], players_specialization, requested_material),
-        axis=-1
-    )
-    teammate_dashboard = jax.vmap(lambda i: reorder_teammate_info(player_data, i))(jnp.arange(static_params.player_count))
-
     all_flattened = jnp.concatenate(
         [
             all_map.reshape(all_map.shape[0], -1),
-            teammate_dashboard,
-            teammate_directions,
             inventory,
             potions,
             intrinsics,

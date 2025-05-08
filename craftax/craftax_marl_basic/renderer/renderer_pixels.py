@@ -1,9 +1,9 @@
 import jax
 from functools import partial
 
-from craftax_marl.constants import *
-from craftax_marl.craftax_state import EnvState, StaticEnvParams
-from craftax_marl.util.game_logic_utils import is_boss_vulnerable, get_player_icon_positions
+from craftax_marl_basic.constants import *
+from craftax_marl_basic.craftax_state import EnvState, StaticEnvParams
+from craftax_marl_basic.util.game_logic_utils import is_boss_vulnerable, get_player_icon_positions
 
 @partial(
     jax.jit,
@@ -63,48 +63,6 @@ def render_craftax_pixels(state, block_pixel_size, static_params, player_specifi
     map_pixels, _ = jax.lax.scan(
         _add_block_type_to_pixels, map_pixels, jnp.arange(len(BlockType))
     )
-
-    # # Render Colored Chests
-    # def _add_player_chests(chest_map_view, player_index):
-    #     """Adds players chest position to other players"""
-    #     local_position = (
-    #         state.chest_positions[state.player_level, player_index]
-    #         - state.player_position[:, None]
-    #         + jnp.ones((2,), dtype=jnp.int32) * (obs_dim_array // 2)
-    #     )
-    #     def _single_batch_index(data_slice, row_idx, col_idx):
-    #         return data_slice.at[row_idx, col_idx].set(player_index)
-    #     chest_map_view = jax.vmap(_single_batch_index, in_axes=(0,0,0))(
-    #         chest_map_view, local_position[..., 0], local_position[..., 1]
-    #     )
-    #     return chest_map_view, None
-
-    # chest_map_view = jnp.full_like(map_view, fill_value=-1)
-    # chest_map_view, _ = jax.lax.scan(
-    #     _add_player_chests,
-    #     chest_map_view,
-    #     jnp.arange(static_params.player_count),
-    # )
-    # chest_map_pixels_indexes = jnp.repeat(
-    #     jnp.repeat(chest_map_view, repeats=block_pixel_size, axis=1),
-    #     repeats=block_pixel_size,
-    #     axis=2,
-    # )
-    # chest_map_pixels_indexes = jnp.expand_dims(chest_map_pixels_indexes, axis=-1)
-    # chest_map_pixels_indexes = jnp.repeat(chest_map_pixels_indexes, repeats=3, axis=-1)
-
-    # def _add_player_chest_to_pixels(pixels, player_index):
-    #     return (
-    #         pixels
-    #         + (player_specific_textures.chest_textures[player_index] - pixels)
-    #         * (chest_map_pixels_indexes == player_index)
-    #         * (map_pixels_indexes == BlockType.CHEST.value),
-    #         None,
-    #     )
-
-    # map_pixels, _ = jax.lax.scan(
-    #     _add_player_chest_to_pixels, map_pixels, jnp.arange(static_params.player_count)
-    # )
 
     # Items
     padded_item_map = jnp.pad(
@@ -200,7 +158,7 @@ def render_craftax_pixels(state, block_pixel_size, static_params, player_specifi
         player_texture_index = jax.lax.select(
             state.player_alive[player_index], player_texture_index, 5
         )
-        player_texture = player_specific_textures.player_textures[player_index, player_texture_index]
+        player_texture = player_specific_textures.player_textures[0, player_texture_index]
         player_texture, player_texture_alpha = (
             player_texture[:, :, :3],
             player_texture[:, :, 3:],
@@ -553,105 +511,6 @@ def render_craftax_pixels(state, block_pixel_size, static_params, player_specifi
             - inv_pixel_right_space,
         ].set(new_slice)
 
-    def _render_icons(pixels, textures, locs):
-        def _render_single_icon(carry, idx):
-            pixels, textures, locs = carry
-            icon_slice = textures[idx]
-            pixels = jax.lax.dynamic_update_slice(
-                pixels,
-                icon_slice,
-                (
-                    block_pixel_size * locs[idx, 0] + inv_pixel_left_space,
-                    block_pixel_size * locs[idx, 1] + inv_pixel_left_space,
-                    0,
-                ),
-            )
-            return (pixels, textures, locs), None
-        (pixels, _, _), _ = jax.lax.scan(
-            _render_single_icon, (pixels, textures, locs), jnp.arange(locs.shape[0])
-        )
-        return pixels
-    
-    def _render_two_digit_numbers(pixels, numbers, locs):
-        tens = numbers // 10
-        ones = numbers % 10
-
-        ones_textures = jnp.where(
-            (numbers == 0)[:, None, None, None, None],
-            textures["number_textures"],
-            textures["number_textures_with_zero"],
-        )
-
-        ones_textures_alpha = jnp.where(
-            (numbers == 0)[:, None, None, None, None],
-            textures["number_textures_alpha"],
-            textures["number_textures_alpha_with_zero"],
-        )
-
-        def _render_single_two_digit_number(pixels, idx):
-            ones_texture = ones_textures[idx, ones[idx]]
-            ones_texture_alpha = ones_textures_alpha[idx, ones[idx]]
-            tens_texture = textures["number_textures"][tens[idx]]
-            tens_texture_alpha = textures["number_textures_alpha"][tens[idx]]
-            
-            # Render Ones
-            original_ones_slice = jax.lax.dynamic_slice(
-                pixels,
-                (
-                    block_pixel_size * locs[idx, 0] + number_offset,
-                    block_pixel_size * locs[idx, 1] + number_offset,
-                    0,
-                ),
-                (number_size, number_size, 3),
-            )
-            updated_ones_slice = (
-                original_ones_slice 
-                * (1 - ones_texture_alpha)
-                + ones_texture
-            )
-            pixels = jax.lax.dynamic_update_slice(
-                pixels,
-                updated_ones_slice,
-                (
-                    block_pixel_size * locs[idx, 0] + number_offset,
-                    block_pixel_size * locs[idx, 1] + number_offset,
-                    0,
-                ),
-            )
-
-            # Render Tens
-            original_tens_slice = jax.lax.dynamic_slice(
-                pixels,
-                (
-                    block_pixel_size * locs[idx, 0] + number_offset,
-                    block_pixel_size * locs[idx, 1] + number_double_offset,
-                    0,
-                ),
-                (number_size, number_size, 3),
-            )
-            updated_tens_slice = (
-                original_tens_slice 
-                * (1 - tens_texture_alpha)
-                + tens_texture
-            )
-            pixels = jax.lax.dynamic_update_slice(
-                pixels,
-                updated_tens_slice,
-                (
-                    block_pixel_size * locs[idx, 0] + number_offset,
-                    block_pixel_size * locs[idx, 1] + number_double_offset,
-                    0,
-                ),
-            )
-
-            return pixels, None
-        
-        pixels, _ = jax.lax.scan(
-            _render_single_two_digit_number, pixels, jnp.arange(static_params.player_count)
-        )
-
-        return pixels
-
     def _render_dashboard(inv_pixels, player_index):
         # Render player stats
         player_health = jnp.maximum(
@@ -859,16 +718,8 @@ def render_craftax_pixels(state, block_pixel_size, static_params, player_specifi
 
         # Learned spells
         spell_texture = jax.lax.select(
-            state.player_specialization[player_index] == Specialization.FORAGER.value,
-            textures["heal_inv_texture"],
+            state.learned_spells[player_index],
             textures["fireball_inv_texture"],
-        )
-        spell_texture = jax.lax.select(
-            jnp.logical_and(
-                state.player_specialization[player_index] != Specialization.UNASSIGNED.value, 
-                state.learned_spells[player_index]
-            ),
-            spell_texture,
             textures["smaller_empty_texture"],
         )
         inv_pixels = _render_icon(inv_pixels, spell_texture, 4, 2)
@@ -926,113 +777,14 @@ def render_craftax_pixels(state, block_pixel_size, static_params, player_specifi
             inv_pixels, state.player_intelligence[player_index], 9, 3
         )
 
-        # Specializations
-        picked_specialization_texture = (
-            (state.player_specialization[player_index] == Specialization.FORAGER.value) * textures["forager_texture"] +
-            (state.player_specialization[player_index] == Specialization.WARRIOR.value) * textures["warrior_texture"] +
-            (state.player_specialization[player_index] == Specialization.MINER.value) * textures["miner_texture"]
-        )
-        spec_texture = jax.lax.select(
-            state.player_specialization[player_index] == Specialization.UNASSIGNED.value,
-            textures["smaller_empty_texture"],
-            picked_specialization_texture,
-        )
-        inv_pixels = _render_icon(inv_pixels, spec_texture, 8, 0)
-
         return inv_pixels
 
     inv_pixels = jax.vmap(_render_dashboard, in_axes=(0, 0))(
         inv_pixels, jnp.arange(static_params.player_count)
     )
 
-    def _render_teammate_info(player_index):
-        info_pixels = jnp.zeros(
-            (
-                (static_params.player_count+1)//2 * block_pixel_size,
-                OBS_DIM[1] * block_pixel_size,
-                3,
-            ),
-            dtype=jnp.float32,
-        )
-
-        # quick icon location calc
-        # player_icon_locations = get_player_icon_positions(static_params.player_count) 
-        player_icon_locations = get_player_icon_positions(static_params.player_count)
-
-        # Render players icons
-        player_icon_to_render = jnp.where(
-            state.player_alive[:, None, None, None],
-            player_specific_textures.player_icon_textures[:, 0],
-            player_specific_textures.player_icon_textures[:, 1],
-        )
-
-        info_pixels = _render_icons(info_pixels, player_icon_to_render, player_icon_locations)
-        
-        # Render teammate healths
-        health_icon_locations = player_icon_locations + jnp.array([0, 1])
-        teammate_health = jnp.maximum(
-            jnp.floor(state.player_health), 1
-        ).astype(int)
-        health_texture = jnp.where(
-            (teammate_health > 0)[:, None, None, None],
-            textures["health_texture"],
-            textures["smaller_empty_texture"],
-        ).astype(float)
-        info_pixels = _render_icons(info_pixels, health_texture, health_icon_locations)
-        info_pixels = _render_two_digit_numbers(info_pixels, teammate_health, health_icon_locations)
-
-        # Render teammate directions
-        direction_icon_locations = player_icon_locations + jnp.array([0, 2])
-        local_position = (
-            state.player_position
-            - state.player_position[player_index]
-            + jnp.ones((2,), dtype=jnp.int32) * (obs_dim_array // 2)
-        )
-        on_screen = jnp.logical_and(
-            local_position >= 0, local_position < obs_dim_array
-        ).all(axis=-1)  
-        render_direction = jnp.logical_not(on_screen)
-
-        direction_index_2d = jnp.where(
-            local_position < 0, 0,
-            jnp.where(local_position >= obs_dim_array, 2, 1)
-        )
-        direction_texture = textures["direction_textures"][
-            direction_index_2d[:, 0], direction_index_2d[:, 1]
-        ][:, :, :, :3]
-        direction_texture = jax.vmap(jnp.multiply, in_axes=(0, 0))(
-            direction_texture, render_direction
-        ).astype(float)
-        info_pixels = _render_icons(info_pixels, direction_texture, direction_icon_locations)
-
-        # Render Teammate Specializations
-        spec_icon_locations = player_icon_locations + jnp.array([0, 3])
-        spec_texture = (
-            (state.player_specialization == Specialization.FORAGER.value)[:, None, None, None] * textures["forager_texture"] +
-            (state.player_specialization == Specialization.WARRIOR.value)[:, None, None, None] * textures["warrior_texture"] +
-            (state.player_specialization == Specialization.MINER.value)[:, None, None, None] * textures["miner_texture"] + 
-            (state.player_specialization == Specialization.UNASSIGNED.value)[:, None, None, None] * textures["smaller_empty_texture"]
-        ).astype(float)
-        info_pixels = _render_icons(info_pixels, spec_texture, spec_icon_locations)
-
-        # Render Teammate Messages
-        message_icon_locations = player_icon_locations + jnp.array([0, 4])
-        message_texture_index = state.request_type - Action.REQUEST_FOOD.value # Hacky
-        message_texture = jnp.where(
-            state.request_duration[:, None, None, None] > 0,
-            textures["request_message_textures"][message_texture_index][:, :, :, :3],
-            textures["smaller_empty_texture"][None, :],
-        ).astype(float)
-        info_pixels = _render_icons(info_pixels, message_texture, message_icon_locations)
-            
-        return info_pixels
-
-    teammate_info_pixels = jax.vmap(_render_teammate_info)(
-        jnp.arange(static_params.player_count)
-    )
-
     # Combine map and inventory
-    pixels = jnp.concatenate([teammate_info_pixels, map_pixels, inv_pixels], axis=1)
+    pixels = jnp.concatenate([map_pixels, inv_pixels], axis=1)
 
     # # Downscale by 2
     # pixels = pixels[::downscale, ::downscale]

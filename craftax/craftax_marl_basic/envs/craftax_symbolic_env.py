@@ -6,13 +6,13 @@ from typing import Dict, Tuple
 from jaxmarl.environments import spaces
 from jaxmarl.environments.multi_agent_env import MultiAgentEnv
 
-from craftax_marl.constants import *
-from craftax_marl.craftax_state import EnvState, EnvParams, StaticEnvParams
-from craftax_marl.envs.common import compute_score_mappo
-from craftax_marl.game_logic import craftax_step, smart_avail_actions
-from craftax_marl.renderer.renderer_symbolic import render_craftax_symbolic
-from craftax_marl.util.game_logic_utils import has_beaten_boss
-from craftax_marl.world_gen.world_gen import generate_world
+from craftax_marl_basic.constants import *
+from craftax_marl_basic.craftax_state import EnvState, EnvParams, StaticEnvParams
+from craftax_marl_basic.envs.common import compute_score_mappo
+from craftax_marl_basic.game_logic import craftax_step
+from craftax_marl_basic.renderer.renderer_symbolic import render_craftax_symbolic
+from craftax_marl_basic.util.game_logic_utils import has_beaten_boss
+from craftax_marl_basic.world_gen.world_gen import generate_world
 
 
 class CraftaxMARLSymbolicEnv(MultiAgentEnv):
@@ -69,7 +69,7 @@ class CraftaxMARLSymbolicEnv(MultiAgentEnv):
 
     @partial(jax.jit, static_argnums=(0,))
     def get_avail_actions(self, state: EnvState) -> Dict[str, chex.Array]:
-        aa = smart_avail_actions(state, self.static_env_params, self.default_params)
+        aa = jnp.full(len(Action), True)
         return {
             agent: aa[i]
             for i, agent in enumerate(self.agents)
@@ -84,48 +84,36 @@ class CraftaxMARLSymbolicEnv(MultiAgentEnv):
         return StaticEnvParams()
     
     def action_shape(self) -> spaces.Discrete:
-        return spaces.Discrete(len(Action) + (self.static_env_params.player_count - 2))
+        return spaces.Discrete(len(Action))
     
     def get_flat_map_obs_shape(self):
         num_mob_classes = 5
         num_mob_types = 8
         num_blocks = len(BlockType)
         num_items = len(ItemType)
-        num_players = self.static_env_params.player_count
-        teammate_dead_alive_bit = 1
+        num_teammate_map = 2 # 1 bit indicates location and another indicates dead/alive
         light_map = 1
 
         return (
             OBS_DIM[0] *
             OBS_DIM[1] *
-            (num_players + teammate_dead_alive_bit + num_blocks + num_items + num_mob_classes * num_mob_types + light_map)
+            (num_teammate_map + num_blocks + num_items + num_mob_classes * num_mob_types + light_map)
         )
 
-    def get_teammate_dashboard_obs_shape(self):
-        num_players = self.static_env_params.player_count
-        num_health = 1
-        num_alive = 1
-        num_specialization = len(Specialization) - 1
-        num_req_mats = (Action.REQUEST_SAPPHIRE.value - Action.REQUEST_FOOD.value + 1)
-        num_directions = 8
-
-        return num_players * (num_health + num_alive + num_specialization + num_req_mats + num_directions)
-
     def get_inventory_obs_shape(self):
+        num_health = 1
         num_inventory = 16
         num_potions = 6
         num_intrinsics = 8
-        num_directions = 4
         num_armour = 4
         num_armour_enchantments = 4
         num_special_values = 3
         num_special_level_values = 4
-        return num_inventory + num_potions + num_intrinsics + num_directions + num_armour + num_armour_enchantments + num_special_values + num_special_level_values
+        return num_health + num_inventory + num_potions + num_intrinsics + num_armour + num_armour_enchantments + num_special_values + num_special_level_values
     
     def observation_shape(self) -> spaces.Box:
         obs_shape = (
             self.get_flat_map_obs_shape() + 
-            self.get_teammate_dashboard_obs_shape() + 
             self.get_inventory_obs_shape()
         )
 
