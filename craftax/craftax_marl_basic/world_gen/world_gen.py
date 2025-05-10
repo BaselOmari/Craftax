@@ -542,13 +542,13 @@ def generate_world(rng, params, static_params):
         )
 
     melee_mobs = generate_empty_mobs(
-        static_params.max_melee_mobs
+        static_params.max_melee_mobs*static_params.player_count
     )
     ranged_mobs = generate_empty_mobs(
-        static_params.max_ranged_mobs
+        static_params.max_ranged_mobs*static_params.player_count
     )
     passive_mobs = generate_empty_mobs(
-        static_params.max_passive_mobs
+        static_params.max_passive_mobs*static_params.player_count
     )
 
     # Projectiles
@@ -657,8 +657,8 @@ def generate_world(rng, params, static_params):
             (static_params.player_count, len(Achievement)), dtype=bool
         ),
         light_level=jnp.asarray(calculate_light_level(0, params), dtype=jnp.float32),
-        revives=jnp.asarray(0, dtype=jnp.int32),
         ff_damage_dealt=jnp.asarray(0.0, dtype=jnp.float32),
+        individual_returns=jnp.full((static_params.player_count, ), 0.0, dtype=jnp.float32),
         all_necessities_frac=jnp.ones((static_params.player_count,), dtype=jnp.float32),
         state_rng=_rng,
         timestep=jnp.asarray(0, dtype=jnp.int32),

@@ -115,8 +115,8 @@ class EnvState:
     timestep: int
 
     # cooperation metrics
-    revives: int
     ff_damage_dealt: float
+    individual_returns: jnp.ndarray
 
     # Misc Metrics
     all_necessities_frac: jnp.ndarray
@@ -147,7 +147,7 @@ class EnvParams:
 class StaticEnvParams:
     map_size: Tuple[int, int] = (48, 48)
     num_levels: int = 9
-    player_count: int = 1
+    player_count: int = 8
 
     # Mobs Per Player
     max_melee_mobs: int = 3
