@@ -523,7 +523,7 @@ def generate_world(rng, params, static_params):
     # Returns stacked versions of the map, item_map, light_map and ladders
     # 9 elements in each of these stacks representing each of the levels.
     # Splice smoothgens and dungeons in order of levels
-    map, item_map, light_map, ladders_down, ladders_up = jax.tree_map(
+    map, item_map, light_map, ladders_down, ladders_up = jax.tree_util.tree_map(
         lambda x, y: jnp.stack(
             (x[0], y[0], x[1], y[1], y[2], x[2], x[3], x[4], x[5]), axis=0
         ),
@@ -588,7 +588,7 @@ def generate_world(rng, params, static_params):
     potion_mapping = jax.random.permutation(_rng, jnp.arange(6))
 
     # Inventory
-    inventory = jax.tree_map(
+    inventory = jax.tree_util.tree_map(
         lambda x, y: jax.lax.select(params.god_mode, x, y),
         get_new_full_inventory(static_params.player_count),
         get_new_empty_inventory(static_params.player_count),

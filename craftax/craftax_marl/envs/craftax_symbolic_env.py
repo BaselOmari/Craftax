@@ -41,7 +41,10 @@ class CraftaxMARLSymbolicEnv(MultiAgentEnv):
 
         obs = self.get_obs(state)
         done = self.is_terminal(state, self.default_params)
-        info = compute_score_mappo(state, done, self.agents, self.static_env_params)
+
+        info = {}
+        info["user_info"] = compute_score_mappo(state, done, self.agents, self.static_env_params)
+
         # info["discount"] = self.discount(state, self.default_params)
         agent_rewards = {n: r for n,r in zip(self.agents, reward)}
 

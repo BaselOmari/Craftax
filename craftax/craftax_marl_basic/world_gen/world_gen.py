@@ -519,7 +519,7 @@ def generate_world(rng, params, static_params):
     # Returns stacked versions of the map, item_map, light_map and ladders
     # 9 elements in each of these stacks representing each of the levels.
     # Splice smoothgens and dungeons in order of levels
-    map, item_map, light_map, ladders_down, ladders_up = jax.tree_map(
+    map, item_map, light_map, ladders_down, ladders_up = jax.tree_util.tree_map(
         lambda x, y: jnp.stack(
             (x[0], y[0], x[1], y[1], y[2], x[2], x[3], x[4], x[5]), axis=0
         ),
@@ -542,13 +542,13 @@ def generate_world(rng, params, static_params):
         )
 
     melee_mobs = generate_empty_mobs(
-        static_params.max_melee_mobs
+        static_params.max_melee_mobs*static_params.player_count
     )
     ranged_mobs = generate_empty_mobs(
-        static_params.max_ranged_mobs
+        static_params.max_ranged_mobs*static_params.player_count
     )
     passive_mobs = generate_empty_mobs(
-        static_params.max_passive_mobs
+        static_params.max_passive_mobs*static_params.player_count
     )
 
     # Projectiles
@@ -584,7 +584,7 @@ def generate_world(rng, params, static_params):
     potion_mapping = jax.random.permutation(_rng, jnp.arange(6))
 
     # Inventory
-    inventory = jax.tree_map(
+    inventory = jax.tree_util.tree_map(
         lambda x, y: jax.lax.select(params.god_mode, x, y),
         get_new_full_inventory(static_params.player_count),
         get_new_empty_inventory(static_params.player_count),
@@ -657,8 +657,8 @@ def generate_world(rng, params, static_params):
             (static_params.player_count, len(Achievement)), dtype=bool
         ),
         light_level=jnp.asarray(calculate_light_level(0, params), dtype=jnp.float32),
-        revives=jnp.asarray(0, dtype=jnp.int32),
         ff_damage_dealt=jnp.asarray(0.0, dtype=jnp.float32),
+        individual_returns=jnp.full((static_params.player_count, ), 0.0, dtype=jnp.float32),
         all_necessities_frac=jnp.ones((static_params.player_count,), dtype=jnp.float32),
         state_rng=_rng,
         timestep=jnp.asarray(0, dtype=jnp.int32),

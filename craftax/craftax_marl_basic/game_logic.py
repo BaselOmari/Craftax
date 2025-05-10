@@ -32,12 +32,11 @@ def interplayer_interaction(state, block_position, is_doing_action, env_params, 
 
     new_player_health = jnp.where(
         is_player_being_revived,
-        2.0,
+        0.0,
         state.player_health - damage_taken,
     )
     state = state.replace(
         player_health=new_player_health,
-        revives=state.revives+is_player_being_revived.sum(),
         ff_damage_dealt=state.ff_damage_dealt+damage_taken.sum(),
     )
     return state
@@ -1498,7 +1497,7 @@ def update_mobs(rng, state, params, env_params, static_params):
 
     rng, _rng = jax.random.split(rng)
     (rng, state), _ = jax.lax.scan(
-        _move_melee_mob, (rng, state), jnp.arange(static_params.max_melee_mobs)
+        _move_melee_mob, (rng, state), jnp.arange(static_params.max_melee_mobs * static_params.player_count)
     )
 
     # Move passive_mobs
@@ -1600,7 +1599,7 @@ def update_mobs(rng, state, params, env_params, static_params):
 
     rng, _rng = jax.random.split(rng)
     (rng, state), _ = jax.lax.scan(
-        _move_passive_mob, (rng, state), jnp.arange(static_params.max_passive_mobs)
+        _move_passive_mob, (rng, state), jnp.arange(static_params.max_passive_mobs * static_params.player_count)
     )
 
     # Move ranged_mobs
@@ -1820,7 +1819,7 @@ def update_mobs(rng, state, params, env_params, static_params):
 
     rng, _rng = jax.random.split(rng)
     (rng, state), _ = jax.lax.scan(
-        _move_ranged_mob, (rng, state), jnp.arange(static_params.max_ranged_mobs)
+        _move_ranged_mob, (rng, state), jnp.arange(static_params.max_ranged_mobs * static_params.player_count)
     )
 
     # Move projectiles
@@ -2617,7 +2616,7 @@ def spawn_mobs(state, rng, params, static_params):
     can_spawn_ranged_mob = (
         state.ranged_mobs.mask[state.player_level].sum() <
         (
-            static_params.max_melee_mobs * 
+            static_params.max_ranged_mobs * 
             (
                 static_params.player_count * (1 - in_dungeon) + 
                 1 * in_dungeon # reduce number of mobs if in dungeons to avoid crowdedness
@@ -3412,13 +3411,11 @@ def craftax_step(
     ).sum(axis=1)
 
     # Gain reward if player gained health
-    # Doesn't apply to revived players
-    # health_reward = jnp.where(
-    #     state.player_alive,
-    #     (state.player_health - init_health) * 0.1,
-    #     0.0
-    # )
-    health_reward = (state.player_health - init_health) * 0.1
+    health_reward = jnp.where(
+        state.player_alive,
+        (state.player_health - init_health) * 0.1,
+        0.0
+    )
 
     individual_reward = achievement_reward + health_reward
     shared_reward = individual_reward.sum().repeat(static_params.player_count)
@@ -3437,6 +3434,7 @@ def craftax_step(
         player_alive=player_alive,
         timestep=state.timestep + 1,
         light_level=calculate_light_level(state.timestep + 1, params),
+        individual_returns=state.individual_returns+individual_reward,
         state_rng=_rng,
     )
 
