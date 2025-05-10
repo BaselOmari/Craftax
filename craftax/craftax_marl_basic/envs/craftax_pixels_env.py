@@ -19,6 +19,7 @@ class CraftaxMARLPixelsEnv(MultiAgentEnv):
     def __init__(self, num_agents: int = 1):
         self.num_agents = num_agents
         self.static_env_params = CraftaxMARLPixelsEnv.default_static_params()
+        self.pixel_size = BLOCK_PIXEL_SIZE_AGENT
 
         self.agents = [
             f"agent_{i}" for i in range(self.static_env_params.player_count)
@@ -27,7 +28,7 @@ class CraftaxMARLPixelsEnv(MultiAgentEnv):
         self.observation_spaces = {name: self.observation_shape() for name in self.agents}
 
         self.player_specific_textures = load_player_specific_textures(
-            TEXTURES[BLOCK_PIXEL_SIZE_HUMAN],
+            TEXTURES[self.pixel_size],
             self.static_env_params.player_count
         )
 
@@ -66,7 +67,7 @@ class CraftaxMARLPixelsEnv(MultiAgentEnv):
         pixels = lax.stop_gradient(
                 render_craftax_pixels(
                 state, 
-                BLOCK_PIXEL_SIZE_HUMAN, 
+                self.pixel_size, 
                 self.static_env_params,
                 self.player_specific_textures
             ) / 255.0
@@ -93,8 +94,8 @@ class CraftaxMARLPixelsEnv(MultiAgentEnv):
             0.0,
             1.0,
             (
-                OBS_DIM[1] * BLOCK_PIXEL_SIZE_HUMAN,
-                (map_height + inventory_height + teammate_dashboard_height) * BLOCK_PIXEL_SIZE_HUMAN,
+                OBS_DIM[1] * self.pixel_size,
+                (map_height + inventory_height + teammate_dashboard_height) * self.pixel_size,
                 3,
             ),
             dtype=jnp.float32,
