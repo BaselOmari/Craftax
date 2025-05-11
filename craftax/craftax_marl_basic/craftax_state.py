@@ -140,14 +140,14 @@ class EnvParams:
 
     # Game Mode Parameters
     god_mode: bool = False
-    shared_reward: bool = True
+    shared_reward: bool = False
     friendly_fire: bool = True
 
 @struct.dataclass
 class StaticEnvParams:
     map_size: Tuple[int, int] = (48, 48)
     num_levels: int = 9
-    player_count: int = 8
+    player_count: int = 2
 
     # Mobs Per Player
     max_melee_mobs: int = 3

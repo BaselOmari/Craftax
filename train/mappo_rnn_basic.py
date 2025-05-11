@@ -5,7 +5,7 @@ Based on PureJaxRL Implementation of IPPO, with changes to give a centralised cr
 import os
 import sys
 sys.path.append('/app/Craftax/craftax')
-os.environ["CUDA_VISIBLE_DEVICES"] = "0,"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3,"
 
 import jax
 import jax.numpy as jnp
@@ -592,12 +592,12 @@ if __name__ == "__main__":
     config = {
         "WANDB_MODE": "online",
         "PROJECT": "pqn-vdn-rnn_craftax-ma-3-agents",
-        "RUN_NAME": "MAPPO - Basic - 8 Agent",
+        "RUN_NAME": "MAPPO - Basic - 2 Agent - 256 - Individual Rewards",
         "ENTITY": "b2alomar-university-of-waterloo",
 
         "ALG_NAME": "mappo-rnn",
         "TOTAL_TIMESTEPS": 1e9,
-        "NUM_ENVS": 128,
+        "NUM_ENVS": 256,
         "NUM_STEPS": 64,
         "NUM_MINIBATCHES": 8,
         "UPDATE_EPOCHS": 4,  # <-- renamed from NUM_EPOCHS

@@ -16,7 +16,7 @@ from craftax_marl_basic.world_gen.world_gen import generate_world
 
 
 class CraftaxMARLSymbolicEnv(MultiAgentEnv):
-    def __init__(self, num_agents: int = 8):
+    def __init__(self, num_agents: int = 2):
         self.num_agents = num_agents
         self.static_env_params = CraftaxMARLSymbolicEnv.default_static_params()
 
