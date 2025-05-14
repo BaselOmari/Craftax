@@ -3438,11 +3438,11 @@ def trade_materials(state, action, static_params):
         Action.REQUEST_FOOD.value, state.player_food, get_max_food(state), food_trade_count
     )
     new_hunger = jnp.where(new_food>state.player_food, 0.0, state.player_hunger)
-    # new_achievements = new_achievements.at[:, Achievement.COLLECT_FOOD.value].set(
-    #     jnp.logical_or(
-    #         new_achievements[:, Achievement.COLLECT_FOOD.value], new_food>state.player_food
-    #     )
-    # )
+    new_achievements = new_achievements.at[:, Achievement.COLLECT_FOOD.value].set(
+        jnp.logical_or(
+            new_achievements[:, Achievement.COLLECT_FOOD.value], new_food>state.player_food
+        )
+    )
     new_food_trade_count += food_trade_count
     new_trade_count += food_trade_count
     
@@ -3452,11 +3452,11 @@ def trade_materials(state, action, static_params):
         Action.REQUEST_DRINK.value, state.player_drink, get_max_drink(state), drink_trade_count
     )
     new_thirst = jnp.where(new_drink>state.player_drink, 0.0, state.player_thirst)
-    # new_achievements = new_achievements.at[:, Achievement.COLLECT_DRINK.value].set(
-    #     jnp.logical_or(
-    #         new_achievements[:, Achievement.COLLECT_DRINK.value], new_drink>state.player_drink
-    #     )
-    # )
+    new_achievements = new_achievements.at[:, Achievement.COLLECT_DRINK.value].set(
+        jnp.logical_or(
+            new_achievements[:, Achievement.COLLECT_DRINK.value], new_drink>state.player_drink
+        )
+    )
     new_drink_trade_count += drink_trade_count
     new_trade_count += drink_trade_count
 
@@ -3570,6 +3570,8 @@ def craftax_step(
     ) -> Tuple[EnvState, chex.Array]:
     init_achievements = state.achievements
     init_health = state.player_health
+    init_drink = state.player_drink
+    init_food = state.player_food
 
     # Interrupt action if dead, sleeping or resting
     cant_do_action = jnp.logical_or(
@@ -3661,7 +3663,12 @@ def craftax_step(
     # )
     health_reward = (state.player_health - init_health) * 0.1
 
-    individual_reward = achievement_reward + health_reward
+    # Gain reward if player gains food/water
+    drink_reward = (state.player_drink - init_drink) * 0.1 
+    food_reward = (state.player_food - init_food) * 0.1
+
+    individual_reward = achievement_reward + health_reward + drink_reward + food_reward
+
     shared_reward = individual_reward.sum().repeat(static_params.player_count)
 
     reward = jax.lax.select(
@@ -3678,6 +3685,8 @@ def craftax_step(
         player_alive=player_alive,
         timestep=state.timestep + 1,
         light_level=calculate_light_level(state.timestep + 1, params),
+        drink_returns=state.drink_returns+drink_reward.sum(),
+        food_returns=state.food_returns+food_reward.sum(),
         state_rng=_rng,
     )
 

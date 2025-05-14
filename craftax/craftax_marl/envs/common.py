@@ -35,5 +35,7 @@ def compute_score_mappo(state: EnvState, done: bool, player_names: List, static_
     info["drink_trade_count"] = jnp.repeat(state.drink_trade_count, static_params.player_count)
     info["ff_damage_dealt"] = jnp.repeat(state.ff_damage_dealt, static_params.player_count)
     info["revives"] = jnp.repeat(state.revives, static_params.player_count)
+    info["food_returns"] = jnp.repeat(state.food_returns, static_params.player_count)
+    info["drink_returns"] = jnp.repeat(state.drink_returns, static_params.player_count)
     info["all_necessities_frac"] = state.all_necessities_frac
     return info

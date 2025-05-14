@@ -670,6 +670,8 @@ def generate_world(rng, params, static_params):
         revives=jnp.asarray(0, dtype=jnp.int32),
         ff_damage_dealt=jnp.asarray(0.0, dtype=jnp.float32),
         all_necessities_frac=jnp.ones((static_params.player_count,), dtype=jnp.float32),
+        drink_returns=jnp.asarray(0.0, dtype=jnp.float32),
+        food_returns=jnp.asarray(0.0, dtype=jnp.float32),
         state_rng=_rng,
         timestep=jnp.asarray(0, dtype=jnp.int32),
     )
