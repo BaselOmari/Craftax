@@ -425,6 +425,7 @@ def make_train(config, env):
                     to_log["episode_lengths"] = infos["returned_episode_lengths"][infos["returned_episode"]].mean()
                     to_log["episode_returns"] = infos["returned_episode_returns"][infos["returned_episode"]].mean()
 
+                print(to_log)
                 wandb.log(to_log, step=metrics["update_steps"])
 
             jax.debug.callback(callback, metrics, infos)
