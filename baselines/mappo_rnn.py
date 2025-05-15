@@ -1,3 +1,8 @@
+"""
+Code is adapted from the MAPPO RNN implementation of JaxMARL (https://github.com/FLAIROx/JaxMARL/tree/main) 
+Credit goes to the original authors: Rutherford et al.
+"""
+
 # ===========================
 # Imports and Configuration
 # ===========================

@@ -1,3 +1,8 @@
+"""
+Code is adapted from the PQN-VDN-RNN from the PureJaxQL repository (https://github.com/mttga/purejaxql) 
+Credit goes to the original authors: Gallici et al.
+"""
+
 # ===========================
 # Imports and Configuration
 # ===========================
