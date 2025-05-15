@@ -8,7 +8,7 @@ from jaxmarl.environments.multi_agent_env import MultiAgentEnv
 
 from craftax_ma.constants import *
 from craftax_ma.craftax_state import EnvState, EnvParams, StaticEnvParams
-from craftax_ma.envs.common import compute_score_mappo
+from craftax_ma.envs.common import compute_score
 from craftax_ma.game_logic import craftax_step
 from craftax_ma.renderer.renderer_symbolic import render_craftax_symbolic
 from craftax_ma.util.game_logic_utils import has_beaten_boss
@@ -42,7 +42,7 @@ class CraftaxMASymbolicEnv(MultiAgentEnv):
         obs = self.get_obs(state)
         done = self.is_terminal(state, self.default_params)
         info = {}
-        info["user_info"] = compute_score_mappo(state, done, self.agents, self.static_env_params)
+        info["user_info"] = compute_score(state, done, self.static_env_params)
         agent_rewards = {n: r for n,r in zip(self.agents, reward)}
 
         agent_done = {n: done for n in self.agents}

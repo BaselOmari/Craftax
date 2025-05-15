@@ -125,8 +125,6 @@ class EnvState:
     drink_trade_count: int
     revives: int
     ff_damage_dealt: float
-    drink_returns: float
-    food_returns: float
     
     # Misc Metrics
     all_necessities_frac: jnp.ndarray

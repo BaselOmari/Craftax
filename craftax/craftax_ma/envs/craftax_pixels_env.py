@@ -14,9 +14,8 @@ from craftax_ma.renderer.renderer_pixels import render_craftax_pixels
 from craftax_ma.util.game_logic_utils import has_beaten_boss
 from craftax_ma.world_gen.world_gen import generate_world
 
-
 class CraftaxMAPixelsEnv(MultiAgentEnv):
-    def __init__(self, num_agents: int = 1):
+    def __init__(self, num_agents: int = 2):  # Changed default to 2 for consistency
         self.num_agents = num_agents
         self.static_env_params = self.default_static_params()
         self.pixel_size = BLOCK_PIXEL_SIZE_AGENT
@@ -33,10 +32,10 @@ class CraftaxMAPixelsEnv(MultiAgentEnv):
         )
 
     @partial(jax.jit, static_argnums=(0,))
-    def reset(self, key: chex.PRNGKey) -> Tuple[Dict[str, chex.Array], EnvState]:
+    def reset(self, key: chex.PRNGKey, _=None) -> Tuple[Dict[str, chex.Array], EnvState]:  # Added _=None for parity
         state = generate_world(key, self.default_params, self.static_env_params)
         return self.get_obs(state), state
-    
+
     @partial(jax.jit, static_argnums=(0,))
     def step_env(
         self, key: chex.PRNGKey, state: EnvState, actions: Dict[str, chex.Array]
@@ -46,8 +45,9 @@ class CraftaxMAPixelsEnv(MultiAgentEnv):
 
         obs = self.get_obs(state)
         done = self.is_terminal(state, self.default_params)
-        info = compute_score(state, done, self.agents, self.static_env_params)
-        info["discount"] = self.discount(state, self.default_params)
+        info = {}
+        info["user_info"] = compute_score(state, done, self.static_env_params)
+        info["discount"] = self.discount(state, self.default_params) 
 
         agent_rewards = {n: r for n,r in zip(self.agents, reward)}
 
@@ -63,18 +63,26 @@ class CraftaxMAPixelsEnv(MultiAgentEnv):
         )
 
     @partial(jax.jit, static_argnums=(0,))
-    def get_obs(self, state: EnvState) -> chex.Array:
+    def get_obs(self, state: EnvState) -> Dict[str, chex.Array]:
         pixels = lax.stop_gradient(
-                render_craftax_pixels(
+            render_craftax_pixels(
                 state, 
                 self.pixel_size, 
                 self.static_env_params,
                 self.player_specific_textures
             ) / 255.0
         )
-        obs = {n:o for n,o in zip(self.agents, pixels)}
+        obs = {n: o for n, o in zip(self.agents, pixels)}
         return obs
-    
+
+    @partial(jax.jit, static_argnums=(0,))
+    def get_avail_actions(self, state: EnvState) -> Dict[str, chex.Array]:
+        aa = jnp.full(len(Action), True)
+        return {
+            agent: aa[i]
+            for i, agent in enumerate(self.agents)
+        }
+
     @property
     def default_params(self) -> EnvParams:
         return EnvParams()
@@ -84,8 +92,8 @@ class CraftaxMAPixelsEnv(MultiAgentEnv):
         return StaticEnvParams()
     
     def action_shape(self) -> spaces.Discrete:
-        return spaces.Discrete(len(Action) + (self.static_env_params.player_count - 2))
-        
+        return spaces.Discrete(len(Action))
+
     def observation_shape(self) -> spaces.Box:
         map_height = OBS_DIM[0]
         inventory_height = INVENTORY_OBS_HEIGHT
