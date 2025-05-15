@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ma-craftax"
-description = "An open-world environment for training MARRL agents"
+description = "An open-world environment for training MARL agents"
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [

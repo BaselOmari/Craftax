@@ -3,9 +3,6 @@ wandb/
 res/
 runs/
 
-train/saved_states
-nmmo
-
 play_data
 
 # Byte-compiled / optimized / DLL files
