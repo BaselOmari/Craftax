@@ -3,12 +3,8 @@ requires = ["setuptools>=64.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "craftax"
-version = "1.4.3"
-authors = [
-  { name="Michael Matthews", email="michael.matthews@eng.ox.ac.uk" },
-]
-description = "An open-world environment for training RL agents"
+name = "ma-craftax"
+description = "An open-world environment for training MARRL agents"
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
@@ -32,15 +28,9 @@ dependencies = [
     "chex",
     "matplotlib",
     "imageio",
+    "jaxmarl",
+    "seaborn",
 ]
-
-[project.scripts]
-play_craftax = "craftax.craftax.play_craftax:entry_point"
-play_craftax_classic = "craftax.craftax_classic.play_craftax_classic:entry_point"
-
-[project.urls]
-Homepage = "https://github.com/MichaelTMatthews/Craftax"
-Issues = "https://github.com/MichaelTMatthews/Craftax/issues"
 
 [tool.setuptools.packages.find]
 include=["craftax*"]

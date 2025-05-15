@@ -29,7 +29,7 @@ import functools
 from jaxmarl.wrappers.baselines import (
     LogWrapper,
 )
-from craftax_marl.envs.craftax_symbolic_env import CraftaxMARLSymbolicEnv as CraftaxEnv
+from craftax_coop.envs.craftax_symbolic_env import CraftaxMARLSymbolicEnv as CraftaxEnv
 import pickle
 
     

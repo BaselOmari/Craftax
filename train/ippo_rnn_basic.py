@@ -18,7 +18,7 @@ import distrax
 from jaxmarl.wrappers.baselines import (
     LogWrapper,
 )
-from craftax_marl_basic.envs.craftax_symbolic_env import CraftaxMARLSymbolicEnv as CraftaxEnv
+from craftax_ma.envs.craftax_symbolic_env import CraftaxMARLSymbolicEnv as CraftaxEnv
 """
 Based on PureJaxRL Implementation of PPO
 """
