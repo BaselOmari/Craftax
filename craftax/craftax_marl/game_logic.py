@@ -61,10 +61,10 @@ def update_plants_with_eat(state, plant_position, is_eating_plant):
 
 
 def add_items_from_chest(rng, state, inventory, is_opening_chest):
-    # is_miner = state.player_specialization == Specialization.MINER.value
-    # is_warrior = state.player_specialization == Specialization.WARRIOR.value
-    is_miner = jnp.array([True])
-    is_warrior = jnp.array([True])
+    is_miner = state.player_specialization == Specialization.MINER.value
+    is_warrior = state.player_specialization == Specialization.WARRIOR.value
+    # is_miner = jnp.array([True])
+    # is_warrior = jnp.array([True])
 
     # Wood (60%)
     rng, _rng = jax.random.split(rng)
@@ -235,8 +235,8 @@ def add_items_from_chest(rng, state, inventory, is_opening_chest):
 
 
 def do_action(rng, state, action, env_params, static_params):
-    # is_forager = state.player_specialization == Specialization.FORAGER.value
-    is_forager = jnp.array([True])
+    is_forager = state.player_specialization == Specialization.FORAGER.value
+    # is_forager = jnp.array([True])
 
     block_position = state.player_position + DIRECTIONS[state.player_direction]
     equal_block_placement = (jnp.expand_dims(block_position, axis=1) == jnp.expand_dims(block_position, axis=0)).all(axis=2)
@@ -697,10 +697,10 @@ def do_action(rng, state, action, env_params, static_params):
 def do_crafting(state, actions, static_params):
     is_at_crafting_table = is_near_block(state, BlockType.CRAFTING_TABLE.value, static_params)
     is_at_furnace = is_near_block(state, BlockType.FURNACE.value, static_params)
-    # is_miner = state.player_specialization == Specialization.MINER.value
-    # is_warrior = state.player_specialization == Specialization.WARRIOR.value
-    is_miner = jnp.array([True])
-    is_warrior = jnp.array([True])
+    is_miner = state.player_specialization == Specialization.MINER.value
+    is_warrior = state.player_specialization == Specialization.WARRIOR.value
+    # is_miner = jnp.array([True])
+    # is_warrior = jnp.array([True])
 
     new_achievements = state.achievements
 
@@ -1167,8 +1167,8 @@ def place_block(state, action, static_params):
     )
     is_player_placing_stone = jnp.logical_and(
         is_player_placing_stone,
-        # state.player_specialization == Specialization.MINER.value
-        jnp.array([True])
+        state.player_specialization == Specialization.MINER.value
+        # jnp.array([True])
     )
     is_any_player_placing_stone = jnp.logical_and(
         equal_block_placement,
@@ -2177,7 +2177,7 @@ def update_player_intrinsics(state, action, static_params):
 
     not_boss = jnp.logical_not(is_fighting_boss(state, static_params))
 
-    intrinsic_decay_coeff = (1.0 - (0.125 * (state.player_dexterity - 1))) * 0.85
+    intrinsic_decay_coeff = (1.0 - (0.125 * (state.player_dexterity - 1)))
 
     # Hunger
     hunger_add = jnp.where(
@@ -2936,12 +2936,12 @@ def shoot_projectile(state: EnvState, action: int, static_params: StaticEnvParam
 
 
 def cast_spell(state, action, static_params):
-    # is_miner = state.player_specialization == Specialization.MINER.value
-    # is_warrior = state.player_specialization == Specialization.WARRIOR.value
-    # is_forager = state.player_specialization == Specialization.FORAGER.value
-    is_miner = jnp.array([True])
-    is_warrior = jnp.array([True])
-    is_forager = jnp.array([True])
+    is_miner = state.player_specialization == Specialization.MINER.value
+    is_warrior = state.player_specialization == Specialization.WARRIOR.value
+    is_forager = state.player_specialization == Specialization.FORAGER.value
+    # is_miner = jnp.array([True])
+    # is_warrior = jnp.array([True])
+    # is_forager = jnp.array([True])
 
     spell_mana_cost = jnp.array([2,6]) # fireball costs 2, healing costs 5
 
@@ -3168,8 +3168,8 @@ def enchant(rng, state: EnvState, action, static_params: StaticEnvParams):
         jnp.logical_and(target_block_is_enchantment_table, num_gems >= 1),
     )
     could_enchant_warrior = jnp.logical_and(
-        # state.player_specialization == Specialization.WARRIOR.value,
-        jnp.array([True]),
+        state.player_specialization == Specialization.WARRIOR.value,
+        # jnp.array([True]),
         could_enchant
     )
 
