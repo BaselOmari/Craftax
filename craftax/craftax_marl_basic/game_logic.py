@@ -2351,7 +2351,7 @@ def spawn_mobs(state, rng, params, static_params):
     # Scale spawn rate with number of players
     monster_spawn_coeff = (
         1
-        + (state.monsters_killed[state.player_level] < (MONSTERS_KILLED_TO_CLEAR_LEVEL*static_params.player_count))
+        + (state.monsters_killed[state.player_level] < monsters_killed_to_clear_level(static_params))
         * 2
     ) * static_params.player_count  
 
@@ -2499,7 +2499,7 @@ def spawn_mobs(state, rng, params, static_params):
             static_params.max_melee_mobs * 
             (
                 static_params.player_count * (1 - in_dungeon) + 
-                1 * in_dungeon # reduce number of mobs if in dungeons to avoid crowdedness
+                1 * in_dungeon # reduce max number of mobs if in dungeons to avoid crowdedness
             )
         )
     )
@@ -2622,7 +2622,7 @@ def spawn_mobs(state, rng, params, static_params):
             static_params.max_ranged_mobs * 
             (
                 static_params.player_count * (1 - in_dungeon) + 
-                1 * in_dungeon # reduce number of mobs if in dungeons to avoid crowdedness
+                1 * in_dungeon # reduce max number of mobs if in dungeons to avoid crowdedness
             )
         )
     )
@@ -2756,7 +2756,7 @@ def change_floor(
                     state.player_level, state.player_position[:, 0], state.player_position[:, 1]
                 ]
                 == ItemType.LADDER_DOWN.value,
-                state.monsters_killed[state.player_level] >= (MONSTERS_KILLED_TO_CLEAR_LEVEL*static_params.player_count)
+                state.monsters_killed[state.player_level] >= monsters_killed_to_clear_level(static_params)
             )
         )
     )

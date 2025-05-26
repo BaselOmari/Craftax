@@ -3,7 +3,7 @@ from functools import partial
 
 from craftax_marl_basic.constants import *
 from craftax_marl_basic.craftax_state import EnvState, StaticEnvParams
-from craftax_marl_basic.util.game_logic_utils import is_boss_vulnerable, get_player_icon_positions
+from craftax_marl_basic.util.game_logic_utils import is_boss_vulnerable, get_player_icon_positions, monsters_killed_to_clear_level
 
 @partial(
     jax.jit,
@@ -77,7 +77,7 @@ def render_craftax_pixels(state, block_pixel_size, static_params, player_specifi
 
     # Insert blocked ladders
     is_ladder_down_open = (
-        state.monsters_killed[state.player_level] >= MONSTERS_KILLED_TO_CLEAR_LEVEL
+        state.monsters_killed[state.player_level] >= monsters_killed_to_clear_level(static_params)
     )
     ladder_down_item = jax.lax.select(
         is_ladder_down_open,

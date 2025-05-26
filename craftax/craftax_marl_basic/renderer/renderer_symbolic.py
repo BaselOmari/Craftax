@@ -3,7 +3,7 @@ from functools import partial
 
 from craftax_marl_basic.constants import *
 from craftax_marl_basic.craftax_state import EnvState, StaticEnvParams
-from craftax_marl_basic.util.game_logic_utils import is_boss_vulnerable
+from craftax_marl_basic.util.game_logic_utils import is_boss_vulnerable, monsters_killed_to_clear_level
 
 
 def render_craftax_symbolic(state: EnvState, static_params: StaticEnvParams):
@@ -214,7 +214,7 @@ def render_craftax_symbolic(state: EnvState, static_params: StaticEnvParams):
         [
             state.light_level,
             state.player_level / 10.0,
-            state.monsters_killed[state.player_level] >= MONSTERS_KILLED_TO_CLEAR_LEVEL,
+            state.monsters_killed[state.player_level] >= monsters_killed_to_clear_level(static_params),
             is_boss_vulnerable(state),
         ]
     )
