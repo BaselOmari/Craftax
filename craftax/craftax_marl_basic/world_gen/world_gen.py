@@ -604,7 +604,7 @@ def generate_world(rng, params, static_params):
         chests_opened=jnp.zeros((static_params.num_levels, static_params.player_count), dtype=bool),
         monsters_killed=jnp.zeros(static_params.num_levels, dtype=jnp.int32)
         .at[0]
-        .set(10),  # First ladder starts open
+        .set(10*static_params.player_count),  # First ladder starts open
         player_position=player_position,
         player_direction=jnp.full(
             (static_params.player_count,), Action.UP.value, dtype=jnp.int32

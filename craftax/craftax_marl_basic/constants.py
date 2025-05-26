@@ -163,8 +163,8 @@ FLOOR_MOB_SPAWN_CHANCE = jnp.array(
     [
         # (passive, melee, ranged, melee-night)
         jnp.array([0.1, 0.02, 0.05, 0.1]),  # Floor 0 (overworld)
-        jnp.array([0.1, 0.06, 0.05, 0.0]),  # Floor 1 (gnomish mines)
-        jnp.array([0.1, 0.06, 0.05, 0.0]),  # Floor 2 (dungeon)
+        jnp.array([0.1, 0.06, 0.05, 0.0]),  # Floor 1 (dungeon)
+        jnp.array([0.1, 0.06, 0.05, 0.0]),  # Floor 2 (gnomish mines)
         jnp.array([0.1, 0.06, 0.05, 0.0]),  # Floor 3 (sewers)
         jnp.array([0.1, 0.06, 0.05, 0.0]),  # Floor 4 (vaults)
         jnp.array([0.1, 0.06, 0.05, 0.0]),  # Floor 5 (troll mines)

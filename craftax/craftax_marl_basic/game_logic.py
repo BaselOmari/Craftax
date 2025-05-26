@@ -2346,11 +2346,14 @@ def spawn_mobs(state, rng, params, static_params):
     )
 
     floor_mob_spawn_chance = FLOOR_MOB_SPAWN_CHANCE
+    
+    # Triple spawn rate if we are on an uncleared level
+    # Scale spawn rate with number of players
     monster_spawn_coeff = (
         1
-        + (state.monsters_killed[state.player_level] < MONSTERS_KILLED_TO_CLEAR_LEVEL)
+        + (state.monsters_killed[state.player_level] < (MONSTERS_KILLED_TO_CLEAR_LEVEL*static_params.player_count))
         * 2
-    )  # Triple spawn rate if we are on an uncleared level
+    ) * static_params.player_count  
 
     monster_spawn_coeff *= jax.lax.select(
         is_fighting_boss(state, static_params),
@@ -2753,7 +2756,7 @@ def change_floor(
                     state.player_level, state.player_position[:, 0], state.player_position[:, 1]
                 ]
                 == ItemType.LADDER_DOWN.value,
-                state.monsters_killed[state.player_level] >= MONSTERS_KILLED_TO_CLEAR_LEVEL
+                state.monsters_killed[state.player_level] >= (MONSTERS_KILLED_TO_CLEAR_LEVEL*static_params.player_count)
             )
         )
     )
