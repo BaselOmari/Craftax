@@ -7,7 +7,7 @@ from jaxmarl.environments import spaces
 from jaxmarl.environments.multi_agent_env import MultiAgentEnv
 
 from craftax_marl_basic.constants import *
-from craftax_marl_basic.craftax_state import EnvState, EnvParams, StaticEnvParams
+from craftax_marl_basic.craftax_state import EnvState, EnvParams
 from craftax_marl_basic.envs.common import compute_score_mappo
 from craftax_marl_basic.game_logic import craftax_step
 from craftax_marl_basic.renderer.renderer_symbolic import render_craftax_symbolic
@@ -16,9 +16,23 @@ from craftax_marl_basic.world_gen.world_gen import generate_world
 
 
 class CraftaxMARLSymbolicEnv(MultiAgentEnv):
-    def __init__(self, num_agents: int = 2):
+    def __init__(self, num_agents: int = 4):
         self.num_agents = num_agents
-        self.static_env_params = self.default_static_params()
+
+        @struct.dataclass
+        class StaticEnvParams:
+            map_size: Tuple[int, int] = (48, 48)
+            num_levels: int = 9
+            player_count: int = self.num_agents
+
+            # Mobs Per Player
+            max_melee_mobs: int = 3
+            max_passive_mobs: int = 3
+            max_growing_plants: int = 10
+            max_ranged_mobs: int = 2
+            max_mob_projectiles: int = 3
+            max_player_projectiles: int = 3
+        self.static_env_params = StaticEnvParams()
 
         self.agents = [
             f"agent_{i}" for i in range(self.static_env_params.player_count)
@@ -79,10 +93,6 @@ class CraftaxMARLSymbolicEnv(MultiAgentEnv):
     @property
     def default_params(self) -> EnvParams:
         return EnvParams()
-    
-    @staticmethod
-    def default_static_params() -> StaticEnvParams:
-        return StaticEnvParams()
     
     def action_shape(self) -> spaces.Discrete:
         return spaces.Discrete(len(Action))
