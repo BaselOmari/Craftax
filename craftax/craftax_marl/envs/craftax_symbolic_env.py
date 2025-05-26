@@ -28,7 +28,7 @@ class CraftaxMARLSymbolicEnv(MultiAgentEnv):
 
 
     @partial(jax.jit, static_argnums=(0,))
-    def reset(self, key: chex.PRNGKey, _=None) -> Tuple[Dict[str, chex.Array], EnvState]:
+    def reset(self, key: chex.PRNGKey) -> Tuple[Dict[str, chex.Array], EnvState]:
         state = generate_world(key, self.default_params, self.static_env_params)
         return self.get_obs(state), state
     
