@@ -6,7 +6,8 @@ from craftax_marl_basic.craftax_state import *
 # For utility functions - functions called more than once in meaningfully different parts of the codebase
 
 def monsters_killed_to_clear_level(static_params):
-    return MONSTERS_KILLED_TO_CLEAR_LEVEL * static_params.player_count
+    return MONSTERS_KILLED_TO_CLEAR_LEVEL + (MONSTERS_KILLED_TO_CLEAR_LEVEL * (static_params.player_count - 1)) // 2  
+
 
 def is_fighting_boss(state, static_params):
     return state.player_level == (static_params.num_levels - 1)
