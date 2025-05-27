@@ -484,7 +484,7 @@ def clip_inventory_and_intrinsics(state, params):
 
 
 def find_valid_ladder_areas(valid_ladder_map, player_count):
-    d = player_count * 2 - 1
+    d = player_count
     s = jnp.ones((d,))
 
     valid_areas = jax.vmap(jnp.convolve, in_axes=(0, None, None))(
@@ -516,7 +516,7 @@ def get_ladder_positions(rng, static_params, config, map):
     ladder_positions = jnp.array(
         [
             ladder_positions_corner[0].repeat(static_params.player_count),
-            ladder_positions_corner[1] + jnp.arange(static_params.player_count) * 2,
+            ladder_positions_corner[1] + jnp.arange(static_params.player_count),
         ]
     ).T
     return ladder_positions

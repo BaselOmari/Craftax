@@ -2364,7 +2364,7 @@ def spawn_mobs(state, rng, params, static_params):
     # Passive mobs
     can_spawn_passive_mob = (
         state.passive_mobs.mask[state.player_level].sum()
-        < static_params.max_passive_mobs
+        < (static_params.max_passive_mobs * static_params.player_count)
     )
 
     rng, _rng = jax.random.split(rng)
