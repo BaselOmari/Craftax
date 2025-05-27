@@ -2,7 +2,7 @@
 import os
 import sys
 sys.path.append('/app/Craftax/craftax')
-os.environ["CUDA_VISIBLE_DEVICES"] = "3,"
+os.environ["CUDA_VISIBLE_DEVICES"] = "5,"
 
 import jax
 import jax.numpy as jnp
@@ -472,7 +472,7 @@ def make_train(config, env):
 def single_run(config):
 
     alg_name = config.get("ALG_NAME", "ippo-rnn")
-    env = CraftaxEnv()
+    env = CraftaxEnv(num_agents=config["NUM_AGENTS"],)
     env_name = "craftax-ma-symbolic-2-agent"
 
     wandb.init(
@@ -499,17 +499,14 @@ if __name__ == "__main__":
     config = {
         "WANDB_MODE": "online",
         "PROJECT": "pqn-vdn-rnn_craftax-ma-3-agents",
-        # "RUN_NAME": "ippo-3_agent-with_trade_achievement_len",
-        # "RUN_NAME": "to_debug_ippo_metrics",
-        # "RUN_NAME": "ippo-revive-chest_removed-recovery++-seed_1",
-        # "RUN_NAME": "ippo-revive-chest_removed-constant_recovery",
-        # "RUN_NAME": "ippo-chest_adjusted-dungeon_spawning-recovery++-teammate_rendering_action++",
-        "RUN_NAME": "IPPO - Basic - 2 Agents - 1024",
         "ENTITY": "b2alomar-university-of-waterloo",
+
+        "RUN_NAME": "IPPO - Basic - Individual Rewards - 8 Agents",
+        "NUM_AGENTS": 8,
 
         "ALG_NAME": "ippo-rnn",
         "TOTAL_TIMESTEPS": 1e9,
-        "NUM_ENVS": 1024,
+        "NUM_ENVS": 800,
         "NUM_STEPS": 64,
         "NUM_MINIBATCHES": 8,
         "UPDATE_EPOCHS": 4,  # <-- renamed from NUM_EPOCHS
