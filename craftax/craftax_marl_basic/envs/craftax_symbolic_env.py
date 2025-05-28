@@ -78,7 +78,7 @@ class CraftaxMARLSymbolicEnv(MultiAgentEnv):
                 state, 
                 self.static_env_params,
             )
-        )
+        ).astype(jnp.float16)
         obs = {n:o for n,o in zip(self.agents, obs_sym)}
         return obs
 
