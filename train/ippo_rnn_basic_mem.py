@@ -2,7 +2,7 @@
 import os
 import sys
 sys.path.append('/app/Craftax/craftax')
-os.environ["CUDA_VISIBLE_DEVICES"] = "5,"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2,"
 
 import jax
 import jax.numpy as jnp
@@ -36,6 +36,24 @@ import distrax
 import wandb
 import functools
 
+def sequential_vmap(func: Callable, n_batches: int, *args, **kwargs):
+    """
+    Applies a function sequentially over the first dimension of its inputs.
+    This is useful for functions that cannot be vectorized over the first dimension.
+    """
+    def wrapper(*args):
+        results = []
+        batch_size = args[0].shape[0] // n_batches
+        assert all(arg.shape[0] == n_batches * batch_size for arg in args), "All inputs must have the same first dimension."
+
+
+        for i in range(n_batches):
+            args_chunked = [arg[i * batch_size:(i + 1) * batch_size] for arg in args]
+            result_chunked = func(*args_chunked, **kwargs)
+            results.append(result_chunked)
+
+        return tuple(jnp.concatenate(result_chunked, axis=0) for result_chunked in zip(*results))
+    return wrapper
 
 class ScannedRNN(nn.Module):
     @functools.partial(
@@ -469,75 +487,67 @@ def make_train(config, env):
 
     return train
 
-def single_run(config):
-
-    alg_name = config.get("ALG_NAME", "ippo-rnn")
-    env = CraftaxEnv(num_agents=config["NUM_AGENTS"],)
-    env_name = "craftax-ma-symbolic-2-agent"
-
-    wandb.init(
-        entity=config["ENTITY"],
-        project=config["PROJECT"],
-        tags=[
-            alg_name.upper(),
-            env_name.upper(),
-            f"jax_{jax.__version__}",
-        ],
-        name=config["RUN_NAME"],
-        config=config,
-        mode=config["WANDB_MODE"],
-    )
-
-    rng = jax.random.PRNGKey(config["SEED"])
-
-    rngs = jax.random.split(rng, config["NUM_SEEDS"])
-    train_vjit = jax.jit(jax.vmap(make_train(config, env)))
-    outs = jax.block_until_ready(train_vjit(rngs))
-
 # %%
-if __name__ == "__main__":
-    config = {
-        "WANDB_MODE": "offline",
-        "PROJECT": "pqn-vdn-rnn_craftax-ma-3-agents",
-        "ENTITY": "b2alomar-university-of-waterloo",
+config = {
+    "WANDB_MODE": "offline",
+    "PROJECT": "pqn-vdn-rnn_craftax-ma-3-agents",
+    "ENTITY": "b2alomar-university-of-waterloo",
 
-        "RUN_NAME": "IPPO - Basic - Individual Rewards - 8 Agents",
-        "NUM_AGENTS": 8,
+    "RUN_NAME": "IPPO - Basic - Individual Rewards - 16 Agents",
+    "NUM_AGENTS": 16,
 
-        "ALG_NAME": "ippo-rnn",
-        "TOTAL_TIMESTEPS": 1e9,
-        "NUM_ENVS": 800,
-        "NUM_STEPS": 64,
-        "NUM_MINIBATCHES": 8,
-        "UPDATE_EPOCHS": 4,  # <-- renamed from NUM_EPOCHS
-        "GRU_HIDDEN_DIM": 512,  # <-- renamed from HIDDEN_SIZE
-        "FC_DIM_SIZE": 128,     # <-- inferred from usage in ActorCriticRNN
-        "ACTIVATION": "tanh",
-        "GAE_LAMBDA": 0.8,  # <-- renamed from LAMBDA
-        "GAMMA": 0.99,
-        "CLIP_EPS": 0.2,
-        "ENT_COEF": 0.01,
-        "VF_COEF": 0.5,
+    "ALG_NAME": "ippo-rnn",
+    "TOTAL_TIMESTEPS": 1e5,
+    "NUM_ENVS": 800,
+    "NUM_STEPS": 64,
+    "NUM_MINIBATCHES": 8,
+    "UPDATE_EPOCHS": 4,  # <-- renamed from NUM_EPOCHS
+    "GRU_HIDDEN_DIM": 512,  # <-- renamed from HIDDEN_SIZE
+    "FC_DIM_SIZE": 128,     # <-- inferred from usage in ActorCriticRNN
+    "ACTIVATION": "tanh",
+    "GAE_LAMBDA": 0.8,  # <-- renamed from LAMBDA
+    "GAMMA": 0.99,
+    "CLIP_EPS": 0.2,
+    "ENT_COEF": 0.01,
+    "VF_COEF": 0.5,
 
-        "ANNEAL_LR": True,  # <-- renamed from LR_LINEAR_DECAY
-        "LR": 2e-4,
-        "MAX_GRAD_NORM": 1.0,
-        "LR_WARMUP": 0.0,  # <-- added for learning rate schedule
-        "REW_SHAPING_HORIZON": 1e6,
+    "ANNEAL_LR": True,  # <-- renamed from LR_LINEAR_DECAY
+    "LR": 2e-4,
+    "MAX_GRAD_NORM": 1.0,
+    "LR_WARMUP": 0.0,  # <-- added for learning rate schedule
+    "REW_SHAPING_HORIZON": 1e6,
 
-        # env specific
-        "ENV_NAME": "Craftax-Symbolic-v1",
-        "USE_OPTIMISTIC_RESETS": True,
-        "OPTIMISTIC_RESET_RATIO": 16,
-        "LOG_ACHIEVEMENTS": False,
+    # env specific
+    "ENV_NAME": "Craftax-Symbolic-v1",
+    "USE_OPTIMISTIC_RESETS": True,
+    "OPTIMISTIC_RESET_RATIO": 16,
+    "LOG_ACHIEVEMENTS": False,
 
-        # evaluation
-        "SAVE_DURING_TRAINING": True,
-        "SAVE_INTERVAL": 1250,
+    # evaluation
+    "SAVE_DURING_TRAINING": False,
+    "SAVE_INTERVAL": 1250,
 
-        "NUM_SEEDS": 1,
-        "SEED": 0,
-    }
-    single_run(config)
+    "NUM_SEEDS": 1,
+    "SEED": 0,
+}
 
-# %%
+alg_name = config.get("ALG_NAME", "ippo-rnn")
+env = CraftaxEnv(num_agents=config["NUM_AGENTS"])
+env_name = "craftax-ma-symbolic-2-agent"
+
+wandb.init(
+    entity=config["ENTITY"],
+    project=config["PROJECT"],
+    tags=[alg_name.upper(), env_name.upper(), f"jax_{jax.__version__}"],
+    name=config["RUN_NAME"],
+    config=config,
+    mode=config["WANDB_MODE"],
+)
+
+rng = jax.random.PRNGKey(config["SEED"])
+rngs = jax.random.split(rng, config["NUM_SEEDS"])
+train_base = jax.jit(jax.vmap(make_train(config, env)))
+train_lower = train_base.lower(rngs)
+train_compile = train_lower.compile()
+
+outs = jax.block_until_ready(train_compile(rngs))
