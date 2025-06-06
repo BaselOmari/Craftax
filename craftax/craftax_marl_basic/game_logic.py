@@ -2499,7 +2499,7 @@ def spawn_mobs(state, rng, params, static_params):
             static_params.max_melee_mobs * 
             (
                 static_params.player_count * (1 - in_dungeon) + 
-                1 * in_dungeon # reduce max number of mobs if in dungeons to avoid crowdedness
+                max(static_params.player_count // 2, 1) * in_dungeon # reduce max number of mobs if in dungeons to avoid crowdedness
             )
         )
     )
@@ -2622,7 +2622,7 @@ def spawn_mobs(state, rng, params, static_params):
             static_params.max_ranged_mobs * 
             (
                 static_params.player_count * (1 - in_dungeon) + 
-                1 * in_dungeon # reduce max number of mobs if in dungeons to avoid crowdedness
+                max(static_params.player_count // 2, 1) * in_dungeon # reduce max number of mobs if in dungeons to avoid crowdedness
             )
         )
     )
