@@ -2851,10 +2851,8 @@ def change_floor(
     moving_up_position = state.down_ladders[state.player_level - 1]
         
     # prioritizes moving players down levels if two players are conflicted
-    position = jax.lax.select(is_moving_down, moving_down_position,
-                              jax.lax.select(is_moving_up, moving_up_position, state.player_position))
-    delta_floor = jax.lax.select(is_moving_down, 1,
-                                 jax.lax.select(is_moving_up, -1, 0))
+    position = state.player_position
+    delta_floor = 0
     
     move_down_achievement = LEVEL_ACHIEVEMENT_MAP[state.player_level + delta_floor]
 
