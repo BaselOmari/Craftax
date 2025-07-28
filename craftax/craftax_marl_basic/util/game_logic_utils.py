@@ -498,25 +498,17 @@ def find_valid_ladder_areas(valid_ladder_map, player_count):
 
 
 def get_ladder_positions(rng, static_params, config, map):
-    valid_ladder_down = (map == config.valid_ladder).astype(jnp.float32)
-    valid_ladder_down = find_valid_ladder_areas(
-        valid_ladder_down, static_params.player_count
-    ).flatten()
+    valid_ladder_down = (map == config.valid_ladder).astype(jnp.float32).flatten()
     ladder_index = jax.random.choice(
         rng,
         jnp.arange(static_params.map_size[0] * static_params.map_size[1]),
+        shape=(static_params.player_count,),
         p=valid_ladder_down / valid_ladder_down.sum(),
-    )
-    ladder_positions_corner = jnp.array(
-        [
-            ladder_index // static_params.map_size[0],
-            ladder_index % static_params.map_size[0],
-        ]
     )
     ladder_positions = jnp.array(
         [
-            ladder_positions_corner[0].repeat(static_params.player_count),
-            ladder_positions_corner[1] + jnp.arange(static_params.player_count),
+            ladder_index // static_params.map_size[0],
+            ladder_index % static_params.map_size[0],
         ]
     ).T
     return ladder_positions
