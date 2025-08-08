@@ -1,7 +1,7 @@
 import os
 import sys
 sys.path.append('/app/Craftax/craftax')
-os.environ["CUDA_VISIBLE_DEVICES"] = "4,"
+os.environ["CUDA_VISIBLE_DEVICES"] = "5,"
 
 import os
 import copy
@@ -575,6 +575,7 @@ def make_train(config, env):
                             {f"rng{int(original_seed)}/{k}": v for k, v in metrics.items()}
                         )
                     wandb.log(metrics)
+                    print(metrics)
 
                 jax.debug.callback(callback, metrics, original_seed)
 
@@ -688,11 +689,11 @@ def single_run(config):
 config = {
     "WANDB_MODE": "online",
     "PROJECT": "pqn-vdn-rnn_craftax-ma-3-agents",
-    "RUN_NAME": "to_debug_qmix",
+    "RUN_NAME": "QMIX - ENV=32 - Learning at 0",
     "ENTITY": "b2alomar-university-of-waterloo",
 
     "TOTAL_TIMESTEPS": 1e9,             # Total training steps
-    "NUM_STEPS": 128,                   # Steps per environment rollout
+    "NUM_STEPS": 32,                   # Steps per environment rollout
     "NUM_ENVS": 32,                    # Number of parallel environments
     "EPS_START": 1.0,                   # Starting epsilon for exploration
     "EPS_FINISH": 0.005,                # Final epsilon
@@ -709,7 +710,7 @@ config = {
     "BUFFER_BATCH_SIZE": 32,            # Batch size sampled from buffer
     "REW_SCALE": 1.0,                   # Reward scaling factor
     "GAMMA": 0.99,                      # Discount factor
-    "LEARNING_STARTS": 10_000,            # Steps before learning starts
+    "LEARNING_STARTS": 0,            # Steps before learning starts
     "TARGET_UPDATE_INTERVAL": 10,      # Target network update interval
     "TAU": 1.0,                       # Soft update coefficient for target net
     "TEST_DURING_TRAINING": False,
