@@ -131,8 +131,9 @@ class Action(Enum):
     REQUEST_DIAMOND = 49  # Left Arrow
     REQUEST_RUBY = 50  # Left Arrow
     REQUEST_SAPPHIRE = 51  # Left Arrow
-    GIVE = 52  # Right Arrow
-    # Player can give to all other players. (Action - GIVE) represents which player to give to.
+    GIVE_WARRIOR = 52  # Right Arrow
+    GIVE_FORAGER = 53  # Right Arrow
+    GIVE_MINER = 54  # Right Arrow
 
 def avail_actions_fn(num_agents):
     base_actions = [
